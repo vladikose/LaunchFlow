@@ -24,13 +24,52 @@ function getUser(req: Request): User | null {
   };
 }
 
+const DEFAULT_STAGE_TEMPLATES = [
+  { name: "Render", nameRu: "Рендер", nameZh: "渲染图", position: 1, hasChecklist: false },
+  { name: "3D Model", nameRu: "3D-модель", nameZh: "3D模型", position: 2, hasChecklist: false },
+  { name: "3D Print", nameRu: "Печать 3D-модели", nameZh: "3D打印", position: 3, hasChecklist: false },
+  { name: "Technical Description", nameRu: "Техническое описание", nameZh: "技术说明", position: 4, hasChecklist: false },
+  { name: "Factory Proposal", nameRu: "Предложение от завода", nameZh: "工厂报价", position: 5, hasChecklist: false },
+  { name: "Tooling", nameRu: "Оснастка", nameZh: "模具", position: 6, hasChecklist: false },
+  { name: "Sample", nameRu: "Образец", nameZh: "样品", position: 7, hasChecklist: false },
+  { name: "Order Placement", nameRu: "Размещение заказа", nameZh: "下单", position: 8, hasChecklist: false },
+  { name: "Documentation Checklist", nameRu: "Получение документации", nameZh: "文档清单", position: 9, hasChecklist: true },
+  { name: "Packaging Checklist", nameRu: "Подготовка упаковки", nameZh: "包装清单", position: 10, hasChecklist: true },
+  { name: "Certification", nameRu: "Сертификация", nameZh: "认证", position: 11, hasChecklist: false },
+  { name: "First Shipment", nameRu: "Отправка первой партии", nameZh: "首批发货", position: 12, hasChecklist: false },
+  { name: "Distribution Preparation", nameRu: "Подготовка к рассылке", nameZh: "分销准备", position: 13, hasChecklist: false },
+];
+
+async function ensureStageTemplates(companyId: string): Promise<void> {
+  const existingTemplates = await storage.getStageTemplatesByCompany(companyId);
+  if (existingTemplates.length === 0) {
+    for (const template of DEFAULT_STAGE_TEMPLATES) {
+      await storage.createStageTemplate({
+        companyId,
+        name: template.name,
+        nameRu: template.nameRu,
+        nameZh: template.nameZh,
+        position: template.position,
+        hasChecklist: template.hasChecklist,
+        isActive: true,
+      });
+    }
+  }
+}
+
 async function ensureUserCompany(userId: string): Promise<string> {
   const user = await storage.getUser(userId);
   if (user?.companyId) {
+    // Ensure existing company has stage templates
+    await ensureStageTemplates(user.companyId);
     return user.companyId;
   }
   const company = await storage.createCompany({ name: "My Company" });
   await storage.updateUser(userId, { companyId: company.id, role: "admin" });
+  
+  // Seed default stage templates for the new company
+  await ensureStageTemplates(company.id);
+  
   return company.id;
 }
 
@@ -86,6 +125,21 @@ export async function registerRoutes(
       res.json(user);
     } catch (error) {
       console.error("Error updating user:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/dashboard/stats", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const companyId = await ensureUserCompany(authUser.id);
+      const stats = await storage.getDashboardStats(companyId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error getting dashboard stats:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -338,6 +392,23 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
       console.error("Error updating stage deadline:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.get("/api/stages/:id/history", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const statusHistory = await storage.getStatusHistoryByStage(req.params.id);
+      const deadlineHistory = await storage.getDeadlineHistoryByStage(req.params.id);
+
+      res.json({ statusHistory, deadlineHistory });
+    } catch (error) {
+      console.error("Error getting stage history:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

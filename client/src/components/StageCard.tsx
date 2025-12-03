@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -94,6 +94,28 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
   const [taskDescription, setTaskDescription] = useState("");
   const [taskAssignee, setTaskAssignee] = useState("");
   const [newComment, setNewComment] = useState("");
+  const [showHistory, setShowHistory] = useState(false);
+
+  const { data: historyData } = useQuery<{
+    statusHistory: Array<{
+      id: string;
+      oldStatus: string;
+      newStatus: string;
+      createdAt: string;
+      changedBy: User | null;
+    }>;
+    deadlineHistory: Array<{
+      id: string;
+      oldDeadline: string | null;
+      newDeadline: string | null;
+      reason: string;
+      createdAt: string;
+      changedBy: User | null;
+    }>;
+  }>({
+    queryKey: ["/api/stages", stage.id, "history"],
+    enabled: showHistory,
+  });
 
   const isOverdue =
     stage.deadline &&
@@ -291,7 +313,108 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
                 <Upload className="h-4 w-4 mr-2" />
                 {t("stages.attachFile")}
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowHistory(!showHistory)}
+                data-testid={`button-view-history-${stage.id}`}
+              >
+                <History className="h-4 w-4 mr-2" />
+                {t("stages.viewHistory")}
+              </Button>
             </div>
+
+            {showHistory && (
+              <div className="space-y-4 p-4 rounded-lg bg-muted/30 border" data-testid={`history-section-${stage.id}`}>
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <History className="h-4 w-4" />
+                  {t("stages.changeHistory")}
+                </h4>
+                
+                {historyData?.statusHistory && historyData.statusHistory.length > 0 && (
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-medium text-muted-foreground uppercase">{t("stages.statusChanges")}</h5>
+                    <div className="space-y-2">
+                      {historyData.statusHistory.map((record) => (
+                        <div key={record.id} className="flex items-start gap-3 text-sm p-2 rounded bg-background">
+                          <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <PlayCircle className="h-3 w-3 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p>
+                              <span className="font-medium">
+                                {record.changedBy ? 
+                                  (record.changedBy.firstName && record.changedBy.lastName 
+                                    ? `${record.changedBy.firstName} ${record.changedBy.lastName}` 
+                                    : record.changedBy.email) 
+                                  : t("common.unknown")}
+                              </span>
+                              {" "}{t("stages.changedStatusFrom")}{" "}
+                              <Badge variant="outline" className="text-xs mx-1">
+                                {t(`stages.status.${record.oldStatus || "waiting"}`)}
+                              </Badge>
+                              {" "}{t("common.to")}{" "}
+                              <Badge variant="outline" className="text-xs mx-1">
+                                {t(`stages.status.${record.newStatus}`)}
+                              </Badge>
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {record.createdAt ? new Date(record.createdAt).toLocaleString() : ""}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {historyData?.deadlineHistory && historyData.deadlineHistory.length > 0 && (
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-medium text-muted-foreground uppercase">{t("stages.deadlineChanges")}</h5>
+                    <div className="space-y-2">
+                      {historyData.deadlineHistory.map((record) => (
+                        <div key={record.id} className="flex items-start gap-3 text-sm p-2 rounded bg-background">
+                          <div className="h-6 w-6 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <Calendar className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p>
+                              <span className="font-medium">
+                                {record.changedBy ? 
+                                  (record.changedBy.firstName && record.changedBy.lastName 
+                                    ? `${record.changedBy.firstName} ${record.changedBy.lastName}` 
+                                    : record.changedBy.email) 
+                                  : t("common.unknown")}
+                              </span>
+                              {" "}{t("stages.changedDeadlineFrom")}{" "}
+                              <span className="font-medium">
+                                {record.oldDeadline ? new Date(record.oldDeadline).toLocaleDateString() : t("stages.notSet")}
+                              </span>
+                              {" "}{t("common.to")}{" "}
+                              <span className="font-medium">
+                                {record.newDeadline ? new Date(record.newDeadline).toLocaleDateString() : t("stages.notSet")}
+                              </span>
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1 italic">
+                              {t("stages.reason")}: {record.reason}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {record.createdAt ? new Date(record.createdAt).toLocaleString() : ""}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {(!historyData?.statusHistory?.length && !historyData?.deadlineHistory?.length) && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    {t("stages.noHistory")}
+                  </p>
+                )}
+              </div>
+            )}
 
             <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
               <CollapsibleTrigger asChild>

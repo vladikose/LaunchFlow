@@ -9,7 +9,7 @@ import {
   AlertTriangle,
   TrendingUp
 } from "lucide-react";
-import type { Project, Stage } from "@shared/schema";
+import type { Project } from "@shared/schema";
 
 interface DashboardStats {
   completedProjects: number;
@@ -25,17 +25,18 @@ export default function Dashboard() {
     queryKey: ["/api/projects"],
   });
 
-  const stats: DashboardStats = {
-    completedProjects: projects?.filter(p => {
-      return false;
-    }).length || 0,
-    activeProjects: projects?.length || 0,
-    overdueProjects: projects?.filter(p => {
-      if (!p.deadline) return false;
-      return new Date(p.deadline) < new Date();
-    }).length || 0,
+  const { data: dashboardStats, isLoading: statsLoading } = useQuery<DashboardStats>({
+    queryKey: ["/api/dashboard/stats"],
+  });
+
+  const stats: DashboardStats = dashboardStats || {
+    completedProjects: 0,
+    activeProjects: 0,
+    overdueProjects: 0,
     avgStageDuration: 0,
   };
+  
+  const isLoading = projectsLoading || statsLoading;
 
   const statCards = [
     {
@@ -86,7 +87,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">{stat.title}</p>
-                  {projectsLoading ? (
+                  {isLoading ? (
                     <Skeleton className="h-8 w-16 mt-2" />
                   ) : (
                     <p className="text-3xl font-semibold mt-2">{stat.value}</p>
@@ -110,7 +111,7 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {projectsLoading ? (
+            {isLoading ? (
               <div className="space-y-3">
                 <Skeleton className="h-8 w-full" />
                 <Skeleton className="h-8 w-3/4" />
@@ -156,7 +157,7 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {projectsLoading ? (
+            {isLoading ? (
               <div className="space-y-3">
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />

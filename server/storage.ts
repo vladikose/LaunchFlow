@@ -81,6 +81,14 @@ export interface IStorage {
 
   createDeadlineHistory(history: InsertDeadlineHistory): Promise<void>;
   createStatusHistory(history: InsertStatusHistory): Promise<void>;
+  getDashboardStats(companyId: string): Promise<{
+    completedProjects: number;
+    activeProjects: number;
+    overdueProjects: number;
+    avgStageDuration: number;
+  }>;
+  getStatusHistoryByStage(stageId: string): Promise<any[]>;
+  getDeadlineHistoryByStage(stageId: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -400,6 +408,140 @@ export class DatabaseStorage implements IStorage {
 
   async createStatusHistory(history: InsertStatusHistory): Promise<void> {
     await db.insert(statusHistory).values(history);
+  }
+
+  async getDashboardStats(companyId: string): Promise<{
+    completedProjects: number;
+    activeProjects: number;
+    overdueProjects: number;
+    avgStageDuration: number;
+  }> {
+    const allProjects = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.companyId, companyId));
+
+    let completedProjects = 0;
+    let overdueProjects = 0;
+    const now = new Date();
+
+    for (const project of allProjects) {
+      const projectStages = await db
+        .select()
+        .from(stages)
+        .where(eq(stages.projectId, project.id));
+
+      if (projectStages.length > 0) {
+        const allCompleted = projectStages.every(
+          (s) => s.status === "completed" || s.status === "skip"
+        );
+        if (allCompleted) {
+          completedProjects++;
+        }
+      }
+
+      if (project.deadline && new Date(project.deadline) < now) {
+        const projectStages = await db
+          .select()
+          .from(stages)
+          .where(eq(stages.projectId, project.id));
+        const allDone = projectStages.every(
+          (s) => s.status === "completed" || s.status === "skip"
+        );
+        if (!allDone) {
+          overdueProjects++;
+        }
+      }
+    }
+
+    // Get status history only for stages belonging to this company's projects
+    const companyStageIds = new Set<string>();
+    for (const project of allProjects) {
+      const projectStages = await db
+        .select({ id: stages.id })
+        .from(stages)
+        .where(eq(stages.projectId, project.id));
+      for (const stage of projectStages) {
+        companyStageIds.add(stage.id);
+      }
+    }
+
+    const allStatusHistory = await db
+      .select()
+      .from(statusHistory)
+      .orderBy(asc(statusHistory.createdAt));
+
+    // Filter to only company stages
+    const companyStatusHistory = allStatusHistory.filter(
+      (record) => companyStageIds.has(record.stageId)
+    );
+
+    let totalDuration = 0;
+    let completedStagesCount = 0;
+
+    const stageStartTimes: Record<string, Date> = {};
+    for (const record of companyStatusHistory) {
+      if (record.newStatus === "in_progress" && !stageStartTimes[record.stageId]) {
+        stageStartTimes[record.stageId] = record.createdAt!;
+      }
+      if (
+        record.newStatus === "completed" &&
+        stageStartTimes[record.stageId]
+      ) {
+        const duration =
+          (record.createdAt!.getTime() - stageStartTimes[record.stageId].getTime()) /
+          (1000 * 60 * 60 * 24);
+        totalDuration += duration;
+        completedStagesCount++;
+        delete stageStartTimes[record.stageId];
+      }
+    }
+
+    const avgStageDuration =
+      completedStagesCount > 0 ? Math.round(totalDuration / completedStagesCount) : 0;
+
+    return {
+      completedProjects,
+      activeProjects: allProjects.length - completedProjects,
+      overdueProjects,
+      avgStageDuration,
+    };
+  }
+
+  async getStatusHistoryByStage(stageId: string): Promise<any[]> {
+    const history = await db
+      .select()
+      .from(statusHistory)
+      .where(eq(statusHistory.stageId, stageId))
+      .orderBy(desc(statusHistory.createdAt));
+    
+    const historyWithUsers = [];
+    for (const record of history) {
+      const user = await this.getUser(record.changedById);
+      historyWithUsers.push({
+        ...record,
+        changedBy: user,
+      });
+    }
+    return historyWithUsers;
+  }
+
+  async getDeadlineHistoryByStage(stageId: string): Promise<any[]> {
+    const history = await db
+      .select()
+      .from(deadlineHistory)
+      .where(eq(deadlineHistory.stageId, stageId))
+      .orderBy(desc(deadlineHistory.createdAt));
+    
+    const historyWithUsers = [];
+    for (const record of history) {
+      const user = await this.getUser(record.changedById);
+      historyWithUsers.push({
+        ...record,
+        changedBy: user,
+      });
+    }
+    return historyWithUsers;
   }
 }
 
