@@ -25,19 +25,139 @@ function getUser(req: Request): User | null {
 }
 
 const DEFAULT_STAGE_TEMPLATES = [
-  { name: "Render", nameRu: "Рендер", nameZh: "渲染图", position: 1, hasChecklist: false },
-  { name: "3D Model", nameRu: "3D-модель", nameZh: "3D模型", position: 2, hasChecklist: false },
-  { name: "3D Print", nameRu: "Печать 3D-модели", nameZh: "3D打印", position: 3, hasChecklist: false },
-  { name: "Technical Description", nameRu: "Техническое описание", nameZh: "技术说明", position: 4, hasChecklist: false },
-  { name: "Factory Proposal", nameRu: "Предложение от завода", nameZh: "工厂报价", position: 5, hasChecklist: false },
-  { name: "Tooling", nameRu: "Оснастка", nameZh: "模具", position: 6, hasChecklist: false },
-  { name: "Sample", nameRu: "Образец", nameZh: "样品", position: 7, hasChecklist: false },
-  { name: "Order Placement", nameRu: "Размещение заказа", nameZh: "下单", position: 8, hasChecklist: false },
-  { name: "Documentation Checklist", nameRu: "Получение документации", nameZh: "文档清单", position: 9, hasChecklist: true },
-  { name: "Packaging Checklist", nameRu: "Подготовка упаковки", nameZh: "包装清单", position: 10, hasChecklist: true },
-  { name: "Certification", nameRu: "Сертификация", nameZh: "认证", position: 11, hasChecklist: false },
-  { name: "First Shipment", nameRu: "Отправка первой партии", nameZh: "首批发货", position: 12, hasChecklist: false },
-  { name: "Distribution Preparation", nameRu: "Подготовка к рассылке", nameZh: "分销准备", position: 13, hasChecklist: false },
+  { 
+    name: "Render", 
+    nameRu: "Рендер", 
+    nameZh: "渲染图", 
+    position: 1, 
+    hasChecklist: false,
+    checklistItems: null,
+    hasConditionalSubstages: false,
+    conditionalSubstages: null,
+    acceptedFileTypes: "image/*",
+  },
+  { 
+    name: "3D Model", 
+    nameRu: "3D-модель", 
+    nameZh: "3D模型", 
+    position: 2, 
+    hasChecklist: false,
+    checklistItems: null,
+    hasConditionalSubstages: false,
+    conditionalSubstages: null,
+    acceptedFileTypes: ".step,.stp,.stl",
+  },
+  { 
+    name: "3D Print", 
+    nameRu: "Печать 3D-модели", 
+    nameZh: "3D打印", 
+    position: 3, 
+    hasChecklist: false,
+    checklistItems: null,
+    hasConditionalSubstages: false,
+    conditionalSubstages: null,
+  },
+  { 
+    name: "Technical Description", 
+    nameRu: "Техническое описание", 
+    nameZh: "技术说明", 
+    position: 4, 
+    hasChecklist: false,
+    checklistItems: null,
+    hasConditionalSubstages: false,
+    conditionalSubstages: null,
+    description: "Функционал, комплектация, состав",
+  },
+  { 
+    name: "Factory Proposal", 
+    nameRu: "Предложение от завода", 
+    nameZh: "工厂报价", 
+    position: 5, 
+    hasChecklist: false,
+    checklistItems: null,
+    hasConditionalSubstages: false,
+    conditionalSubstages: null,
+  },
+  { 
+    name: "Tooling", 
+    nameRu: "Оснастка", 
+    nameZh: "模具", 
+    position: 6, 
+    hasChecklist: false,
+    checklistItems: null,
+    hasConditionalSubstages: false,
+    conditionalSubstages: null,
+  },
+  { 
+    name: "Sample", 
+    nameRu: "Образец", 
+    nameZh: "样品", 
+    position: 7, 
+    hasChecklist: false,
+    checklistItems: null,
+    hasConditionalSubstages: false,
+    conditionalSubstages: null,
+  },
+  { 
+    name: "Order Placement", 
+    nameRu: "Размещение заказа", 
+    nameZh: "下单", 
+    position: 8, 
+    hasChecklist: false,
+    checklistItems: null,
+    hasConditionalSubstages: false,
+    conditionalSubstages: null,
+  },
+  { 
+    name: "Documentation Checklist", 
+    nameRu: "Получение документации", 
+    nameZh: "文档清单", 
+    position: 9, 
+    hasChecklist: true,
+    checklistItems: ["explosionDiagram", "productDrawing", "boxDrawing"],
+    hasConditionalSubstages: false,
+    conditionalSubstages: null,
+  },
+  { 
+    name: "Packaging Checklist", 
+    nameRu: "Подготовка упаковки", 
+    nameZh: "包装清单", 
+    position: 10, 
+    hasChecklist: true,
+    checklistItems: ["box", "instruction", "externalSticker", "internalSticker"],
+    hasConditionalSubstages: false,
+    conditionalSubstages: null,
+  },
+  { 
+    name: "Certification", 
+    nameRu: "Сертификация", 
+    nameZh: "认证", 
+    position: 11, 
+    hasChecklist: false,
+    checklistItems: null,
+    hasConditionalSubstages: true,
+    conditionalSubstages: ["application", "sampleShipping", "certificateReceived"],
+  },
+  { 
+    name: "First Shipment", 
+    nameRu: "Отправка первой партии", 
+    nameZh: "首批发货", 
+    position: 12, 
+    hasChecklist: true,
+    checklistItems: ["boxPhoto", "hsCode", "catalogPage"],
+    hasConditionalSubstages: false,
+    conditionalSubstages: null,
+  },
+  { 
+    name: "Distribution Preparation", 
+    nameRu: "Подготовка к рассылке", 
+    nameZh: "分销准备", 
+    position: 13, 
+    hasChecklist: true,
+    checklistItems: ["video", "render", "price", "websiteDescription", "videoDescription", "mailingText"],
+    hasConditionalSubstages: false,
+    conditionalSubstages: null,
+  },
 ];
 
 async function ensureStageTemplates(companyId: string): Promise<void> {
@@ -51,6 +171,9 @@ async function ensureStageTemplates(companyId: string): Promise<void> {
         nameZh: template.nameZh,
         position: template.position,
         hasChecklist: template.hasChecklist,
+        checklistItems: template.checklistItems,
+        hasConditionalSubstages: template.hasConditionalSubstages,
+        conditionalSubstages: template.conditionalSubstages,
         isActive: true,
       });
     }
@@ -334,6 +457,24 @@ export async function registerRoutes(
       }, [] as typeof templates);
 
       for (const template of uniqueTemplates) {
+        // Initialize checklistData with all items set to false
+        let checklistData: Record<string, boolean> | null = null;
+        if (template.hasChecklist && template.checklistItems) {
+          checklistData = {};
+          for (const item of template.checklistItems) {
+            checklistData[item] = false;
+          }
+        }
+        
+        // Initialize conditionalSubstagesData with all substages set to false
+        let conditionalSubstagesData: Record<string, boolean> | null = null;
+        if (template.hasConditionalSubstages && template.conditionalSubstages) {
+          conditionalSubstagesData = {};
+          for (const substage of template.conditionalSubstages) {
+            conditionalSubstagesData[substage] = false;
+          }
+        }
+        
         await storage.createStage({
           projectId: project.id,
           templateId: template.id,
@@ -342,9 +483,9 @@ export async function registerRoutes(
           status: "waiting",
           startDate: null,
           deadline: null,
-          checklistData: template.hasChecklist ? {} : null,
+          checklistData,
           conditionalEnabled: false,
-          conditionalSubstagesData: null,
+          conditionalSubstagesData,
         });
       }
 
