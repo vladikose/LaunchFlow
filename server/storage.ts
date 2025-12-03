@@ -261,6 +261,16 @@ export class DatabaseStorage implements IStorage {
       const files = await this.getFilesByStage(stage.id);
       const stageComments = await this.getCommentsByStage(stage.id);
       const stageTasks = await this.getTasksByStage(stage.id);
+      
+      // Fetch template data if templateId exists
+      let template: StageTemplate | null = null;
+      if (stage.templateId) {
+        const [templateData] = await db
+          .select()
+          .from(stageTemplates)
+          .where(eq(stageTemplates.id, stage.templateId));
+        template = templateData || null;
+      }
 
       const commentsWithUsers = await Promise.all(
         stageComments.map(async (comment) => {
@@ -279,6 +289,7 @@ export class DatabaseStorage implements IStorage {
 
       stagesWithRelations.push({
         ...stage,
+        template,
         files,
         comments: commentsWithUsers,
         tasks: tasksWithUsers,
@@ -295,6 +306,16 @@ export class DatabaseStorage implements IStorage {
     const files = await this.getFilesByStage(id);
     const stageComments = await this.getCommentsByStage(id);
     const stageTasks = await this.getTasksByStage(id);
+    
+    // Fetch template data if templateId exists
+    let template: StageTemplate | null = null;
+    if (stage.templateId) {
+      const [templateData] = await db
+        .select()
+        .from(stageTemplates)
+        .where(eq(stageTemplates.id, stage.templateId));
+      template = templateData || null;
+    }
 
     const commentsWithUsers = await Promise.all(
       stageComments.map(async (comment) => {
@@ -313,6 +334,7 @@ export class DatabaseStorage implements IStorage {
 
     return {
       ...stage,
+      template,
       files,
       comments: commentsWithUsers,
       tasks: tasksWithUsers,

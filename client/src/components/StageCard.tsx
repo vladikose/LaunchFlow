@@ -267,19 +267,25 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
     return "*";
   };
 
-  // Get translation key for checklist item
+  // Get translation key for checklist item - tries multiple translation namespaces
   const getChecklistItemLabel = (itemKey: string) => {
-    // Check in different translation sections
-    const checklistTranslation = t(`stages.checklistItems.${itemKey}`, { defaultValue: "" });
-    if (checklistTranslation && checklistTranslation !== `stages.checklistItems.${itemKey}`) return checklistTranslation;
+    // Try different translation sections in order of specificity
+    const translationPaths = [
+      `stages.checklistItems.${itemKey}`,
+      `stages.certificationSubstages.${itemKey}`,
+      `stages.firstShipmentItems.${itemKey}`,
+    ];
     
-    const certificationTranslation = t(`stages.certificationSubstages.${itemKey}`, { defaultValue: "" });
-    if (certificationTranslation && certificationTranslation !== `stages.certificationSubstages.${itemKey}`) return certificationTranslation;
+    for (const path of translationPaths) {
+      // i18next with returnNull and returnEmptyString false returns the key if not found
+      const translation = t(path, { defaultValue: null as any });
+      if (translation && translation !== path) {
+        return translation;
+      }
+    }
     
-    const firstShipmentTranslation = t(`stages.firstShipmentItems.${itemKey}`, { defaultValue: "" });
-    if (firstShipmentTranslation && firstShipmentTranslation !== `stages.firstShipmentItems.${itemKey}`) return firstShipmentTranslation;
-    
-    return itemKey;
+    // Fallback: format the key to be human-readable
+    return itemKey.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()).trim();
   };
 
   // Check if stage has checklist
