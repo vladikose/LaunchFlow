@@ -31,6 +31,8 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import {
   Calendar,
   Paperclip,
@@ -47,6 +49,8 @@ import {
   PlayCircle,
   AlertTriangle,
   FileIcon,
+  Check,
+  List,
 } from "lucide-react";
 import type { StageWithRelations, User, CommentWithUser, StageFile } from "@shared/schema";
 
@@ -100,6 +104,7 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
   const [newComment, setNewComment] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadingChecklistItem, setUploadingChecklistItem] = useState<string | null>(null);
 
   const { data: historyData } = useQuery<{
     statusHistory: Array<{
@@ -213,11 +218,88 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
     },
   });
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const updateChecklistMutation = useMutation({
+    mutationFn: async (data: { checklistData?: Record<string, boolean>; conditionalEnabled?: boolean; conditionalSubstagesData?: Record<string, boolean> }) => {
+      return apiRequest("PATCH", `/api/stages/${stage.id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+    },
+    onError: () => {
+      toast({ title: "Failed to update checklist", variant: "destructive" });
+    },
+  });
+
+  const handleChecklistItemToggle = (itemKey: string, currentValue: boolean) => {
+    const newChecklistData = {
+      ...(stage.checklistData || {}),
+      [itemKey]: !currentValue,
+    };
+    updateChecklistMutation.mutate({ checklistData: newChecklistData });
+  };
+
+  const handleConditionalToggle = (enabled: boolean) => {
+    updateChecklistMutation.mutate({ 
+      conditionalEnabled: enabled,
+      status: enabled ? "waiting" : "skip",
+    });
+  };
+
+  const handleConditionalSubstageToggle = (itemKey: string, currentValue: boolean) => {
+    const newSubstagesData = {
+      ...(stage.conditionalSubstagesData || {}),
+      [itemKey]: !currentValue,
+    };
+    updateChecklistMutation.mutate({ conditionalSubstagesData: newSubstagesData });
+  };
+
+  // Get files for a specific checklist item
+  const getFilesForChecklistItem = (itemKey: string) => {
+    return (stage.files || []).filter(f => f.checklistItemKey === itemKey);
+  };
+
+  // Get accepted file types based on stage name
+  const getAcceptedFileTypes = (stageName: string, itemKey?: string) => {
+    if (stageName === "Render" || itemKey === "render") return "image/*";
+    if (stageName === "3D Model") return ".step,.stp,.stl";
+    if (itemKey === "boxPhoto") return "image/*";
+    if (itemKey === "video") return "video/*";
+    return "*";
+  };
+
+  // Get translation key for checklist item
+  const getChecklistItemLabel = (itemKey: string) => {
+    // Check in different translation sections
+    const checklistTranslation = t(`stages.checklistItems.${itemKey}`, { defaultValue: "" });
+    if (checklistTranslation && checklistTranslation !== `stages.checklistItems.${itemKey}`) return checklistTranslation;
+    
+    const certificationTranslation = t(`stages.certificationSubstages.${itemKey}`, { defaultValue: "" });
+    if (certificationTranslation && certificationTranslation !== `stages.certificationSubstages.${itemKey}`) return certificationTranslation;
+    
+    const firstShipmentTranslation = t(`stages.firstShipmentItems.${itemKey}`, { defaultValue: "" });
+    if (firstShipmentTranslation && firstShipmentTranslation !== `stages.firstShipmentItems.${itemKey}`) return firstShipmentTranslation;
+    
+    return itemKey;
+  };
+
+  // Check if stage has checklist
+  const hasChecklist = stage.template?.hasChecklist && stage.template?.checklistItems?.length;
+  const checklistItems = stage.template?.checklistItems || [];
+  
+  // Check if stage has conditional substages (certification)
+  const hasConditionalSubstages = stage.template?.hasConditionalSubstages && stage.template?.conditionalSubstages?.length;
+  const conditionalSubstages = stage.template?.conditionalSubstages || [];
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, checklistItemKey?: string) => {
     const file = event.target.files?.[0];
     if (!file) return;
     
-    setIsUploading(true);
+    if (checklistItemKey) {
+      setUploadingChecklistItem(checklistItemKey);
+    } else {
+      setIsUploading(true);
+    }
+    
     try {
       // Step 1: Get signed upload URL
       const urlResponse = await fetch(
@@ -244,7 +326,7 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
         throw new Error("Upload to storage failed");
       }
       
-      // Step 3: Record file metadata in database
+      // Step 3: Record file metadata in database with checklist item key
       const fileUrl = url.split("?")[0]; // Remove query params for clean URL
       const recordResponse = await fetch(`/api/stages/${stage.id}/files`, {
         method: "POST",
@@ -254,21 +336,28 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
           fileUrl: fileUrl,
           fileType: file.type,
           fileSize: file.size,
+          checklistItemKey: checklistItemKey || null,
         }),
         credentials: "include",
       });
       
       if (!recordResponse.ok) {
-        throw new Error("Failed to record file");
+        const error = await recordResponse.json();
+        throw new Error(error.message || "Failed to record file");
       }
       
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
       toast({ title: t("stages.fileUploaded") });
     } catch (error) {
       console.error("File upload error:", error);
-      toast({ title: t("stages.fileUploadFailed"), variant: "destructive" });
+      toast({ 
+        title: t("stages.fileUploadFailed"), 
+        description: error instanceof Error ? error.message : undefined,
+        variant: "destructive" 
+      });
     } finally {
       setIsUploading(false);
+      setUploadingChecklistItem(null);
       event.target.value = "";
     }
   };
@@ -519,6 +608,193 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
                   <p className="text-sm text-muted-foreground text-center py-4">
                     {t("stages.noHistory")}
                   </p>
+                )}
+              </div>
+            )}
+
+            {/* Checklist Section */}
+            {hasChecklist && (
+              <div className="space-y-3 p-4 rounded-lg bg-muted/30 border" data-testid={`checklist-section-${stage.id}`}>
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <List className="h-4 w-4" />
+                  {t("stages.checklist")}
+                </h4>
+                <div className="space-y-3">
+                  {checklistItems.map((itemKey) => {
+                    const isCompleted = stage.checklistData?.[itemKey] || false;
+                    const itemFiles = getFilesForChecklistItem(itemKey);
+                    const isItemUploading = uploadingChecklistItem === itemKey;
+                    
+                    return (
+                      <div key={itemKey} className="flex flex-col gap-2 p-3 rounded-lg bg-background border">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <Checkbox
+                              id={`checklist-${stage.id}-${itemKey}`}
+                              checked={isCompleted}
+                              onCheckedChange={() => handleChecklistItemToggle(itemKey, isCompleted)}
+                              data-testid={`checkbox-${stage.id}-${itemKey}`}
+                            />
+                            <label
+                              htmlFor={`checklist-${stage.id}-${itemKey}`}
+                              className={`text-sm cursor-pointer flex-1 ${isCompleted ? "line-through text-muted-foreground" : ""}`}
+                            >
+                              {getChecklistItemLabel(itemKey)}
+                            </label>
+                          </div>
+                          <label className="cursor-pointer flex-shrink-0">
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept={getAcceptedFileTypes(stage.name, itemKey)}
+                              onChange={(e) => handleFileUpload(e, itemKey)}
+                              disabled={isItemUploading}
+                              data-testid={`input-file-${stage.id}-${itemKey}`}
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={isItemUploading}
+                              asChild
+                              data-testid={`button-attach-${stage.id}-${itemKey}`}
+                            >
+                              <span className="flex items-center gap-1">
+                                {isItemUploading ? (
+                                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                ) : (
+                                  <Upload className="h-4 w-4" />
+                                )}
+                                {itemFiles.length > 0 && (
+                                  <Badge variant="secondary" className="text-xs px-1.5">
+                                    {itemFiles.length}
+                                  </Badge>
+                                )}
+                              </span>
+                            </Button>
+                          </label>
+                        </div>
+                        
+                        {itemFiles.length > 0 && (
+                          <div className="ml-7 space-y-1">
+                            {itemFiles.map((file) => (
+                              <div
+                                key={file.id}
+                                className="flex items-center gap-2 text-xs text-muted-foreground"
+                                data-testid={`file-${stage.id}-${itemKey}-${file.id}`}
+                              >
+                                <FileIcon className="h-3 w-3 flex-shrink-0" />
+                                <span className="truncate flex-1">{file.fileName}</span>
+                                {file.isLatest && (
+                                  <Badge variant="outline" className="text-xs px-1">
+                                    v{file.version}
+                                  </Badge>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Conditional Certification Stage */}
+            {hasConditionalSubstages && (
+              <div className="space-y-3 p-4 rounded-lg bg-muted/30 border" data-testid={`conditional-section-${stage.id}`}>
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium">{t("stages.templates.certification")}</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">
+                      {stage.conditionalEnabled ? t("common.yes") : t("common.no")}
+                    </span>
+                    <Switch
+                      checked={stage.conditionalEnabled || false}
+                      onCheckedChange={handleConditionalToggle}
+                      data-testid={`switch-certification-${stage.id}`}
+                    />
+                  </div>
+                </div>
+                
+                {stage.conditionalEnabled && (
+                  <div className="space-y-3">
+                    {conditionalSubstages.map((itemKey) => {
+                      const isCompleted = stage.conditionalSubstagesData?.[itemKey] || false;
+                      const itemFiles = getFilesForChecklistItem(itemKey);
+                      const isItemUploading = uploadingChecklistItem === itemKey;
+                      
+                      return (
+                        <div key={itemKey} className="flex flex-col gap-2 p-3 rounded-lg bg-background border">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                              <Checkbox
+                                id={`substage-${stage.id}-${itemKey}`}
+                                checked={isCompleted}
+                                onCheckedChange={() => handleConditionalSubstageToggle(itemKey, isCompleted)}
+                                data-testid={`checkbox-substage-${stage.id}-${itemKey}`}
+                              />
+                              <label
+                                htmlFor={`substage-${stage.id}-${itemKey}`}
+                                className={`text-sm cursor-pointer flex-1 ${isCompleted ? "line-through text-muted-foreground" : ""}`}
+                              >
+                                {getChecklistItemLabel(itemKey)}
+                              </label>
+                            </div>
+                            <label className="cursor-pointer flex-shrink-0">
+                              <input
+                                type="file"
+                                className="hidden"
+                                onChange={(e) => handleFileUpload(e, itemKey)}
+                                disabled={isItemUploading}
+                                data-testid={`input-file-substage-${stage.id}-${itemKey}`}
+                              />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                disabled={isItemUploading}
+                                asChild
+                                data-testid={`button-attach-substage-${stage.id}-${itemKey}`}
+                              >
+                                <span className="flex items-center gap-1">
+                                  {isItemUploading ? (
+                                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                  ) : (
+                                    <Upload className="h-4 w-4" />
+                                  )}
+                                  {itemFiles.length > 0 && (
+                                    <Badge variant="secondary" className="text-xs px-1.5">
+                                      {itemFiles.length}
+                                    </Badge>
+                                  )}
+                                </span>
+                              </Button>
+                            </label>
+                          </div>
+                          
+                          {itemFiles.length > 0 && (
+                            <div className="ml-7 space-y-1">
+                              {itemFiles.map((file) => (
+                                <div
+                                  key={file.id}
+                                  className="flex items-center gap-2 text-xs text-muted-foreground"
+                                  data-testid={`file-substage-${stage.id}-${itemKey}-${file.id}`}
+                                >
+                                  <FileIcon className="h-3 w-3 flex-shrink-0" />
+                                  <span className="truncate flex-1">{file.fileName}</span>
+                                  {file.isLatest && (
+                                    <Badge variant="outline" className="text-xs px-1">
+                                      v{file.version}
+                                    </Badge>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             )}
