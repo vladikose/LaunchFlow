@@ -86,15 +86,20 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
   const { user: currentUser } = useAuth();
   const [isExpanded, setIsExpanded] = useState(false);
   const [showDeadlineModal, setShowDeadlineModal] = useState(false);
+  const [showStartDateModal, setShowStartDateModal] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [deadlineReason, setDeadlineReason] = useState("");
   const [newDeadline, setNewDeadline] = useState(
     stage.deadline ? new Date(stage.deadline).toISOString().split("T")[0] : ""
   );
+  const [newStartDate, setNewStartDate] = useState(
+    stage.startDate ? new Date(stage.startDate).toISOString().split("T")[0] : ""
+  );
   const [taskDescription, setTaskDescription] = useState("");
   const [taskAssignee, setTaskAssignee] = useState("");
   const [newComment, setNewComment] = useState("");
   const [showHistory, setShowHistory] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const { data: historyData } = useQuery<{
     statusHistory: Array<{
@@ -150,10 +155,26 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
       setShowDeadlineModal(false);
       setDeadlineReason("");
-      toast({ title: "Deadline updated" });
+      toast({ title: t("stages.deadlineUpdated") });
     },
     onError: () => {
-      toast({ title: "Failed to update deadline", variant: "destructive" });
+      toast({ title: t("stages.deadlineUpdateFailed"), variant: "destructive" });
+    },
+  });
+
+  const updateStartDateMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("PATCH", `/api/stages/${stage.id}`, {
+        startDate: newStartDate || null,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      setShowStartDateModal(false);
+      toast({ title: t("stages.startDateUpdated") });
+    },
+    onError: () => {
+      toast({ title: t("stages.startDateUpdateFailed"), variant: "destructive" });
     },
   });
 
@@ -185,12 +206,72 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
       setNewComment("");
-      toast({ title: "Comment added" });
+      toast({ title: t("stages.commentAdded") });
     },
     onError: () => {
-      toast({ title: "Failed to add comment", variant: "destructive" });
+      toast({ title: t("stages.commentFailed"), variant: "destructive" });
     },
   });
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    setIsUploading(true);
+    try {
+      // Step 1: Get signed upload URL
+      const urlResponse = await fetch(
+        `/api/stages/${stage.id}/upload-url?fileName=${encodeURIComponent(file.name)}`,
+        { credentials: "include" }
+      );
+      
+      if (!urlResponse.ok) {
+        throw new Error("Failed to get upload URL");
+      }
+      
+      const { url } = await urlResponse.json();
+      
+      // Step 2: Upload file directly to cloud storage
+      const uploadResponse = await fetch(url, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+        },
+      });
+      
+      if (!uploadResponse.ok) {
+        throw new Error("Upload to storage failed");
+      }
+      
+      // Step 3: Record file metadata in database
+      const fileUrl = url.split("?")[0]; // Remove query params for clean URL
+      const recordResponse = await fetch(`/api/stages/${stage.id}/files`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileUrl: fileUrl,
+          fileType: file.type,
+          fileSize: file.size,
+        }),
+        credentials: "include",
+      });
+      
+      if (!recordResponse.ok) {
+        throw new Error("Failed to record file");
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      toast({ title: t("stages.fileUploaded") });
+    } catch (error) {
+      console.error("File upload error:", error);
+      toast({ title: t("stages.fileUploadFailed"), variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+      event.target.value = "";
+    }
+  };
 
   const getUserName = (userId: string | null | undefined) => {
     if (!userId) return null;
@@ -276,8 +357,17 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
                 <span>
                   {stage.startDate
                     ? new Date(stage.startDate).toLocaleDateString()
-                    : "Not set"}
+                    : t("stages.notSet")}
                 </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowStartDateModal(true)}
+                  className="h-6 px-2 text-xs"
+                  data-testid={`button-change-start-date-${stage.id}`}
+                >
+                  {t("stages.changeStartDate")}
+                </Button>
               </div>
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -285,7 +375,7 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
                 <span className={isOverdue ? "text-red-600 dark:text-red-400 font-medium" : ""}>
                   {stage.deadline
                     ? new Date(stage.deadline).toLocaleDateString()
-                    : "Not set"}
+                    : t("stages.notSet")}
                 </span>
                 <Button
                   variant="ghost"
@@ -309,10 +399,27 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
                 <UserPlus className="h-4 w-4 mr-2" />
                 {t("stages.assignTask")}
               </Button>
-              <Button variant="outline" size="sm" data-testid={`button-attach-file-${stage.id}`}>
-                <Upload className="h-4 w-4 mr-2" />
-                {t("stages.attachFile")}
-              </Button>
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  disabled={isUploading}
+                  data-testid={`input-file-${stage.id}`}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isUploading}
+                  asChild
+                  data-testid={`button-attach-file-${stage.id}`}
+                >
+                  <span>
+                    <Upload className="h-4 w-4 mr-2" />
+                    {isUploading ? t("common.loading") : t("stages.attachFile")}
+                  </span>
+                </Button>
+              </label>
               <Button
                 variant="outline"
                 size="sm"
@@ -570,6 +677,40 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
               onClick={() => updateDeadlineMutation.mutate()}
               disabled={!deadlineReason.trim() || updateDeadlineMutation.isPending}
               data-testid="button-save-deadline"
+            >
+              {t("common.save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showStartDateModal} onOpenChange={setShowStartDateModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("stages.changeStartDate")}</DialogTitle>
+            <DialogDescription>
+              {t("stages.setStartDateDescription")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{t("stages.startDate")}</label>
+              <Input
+                type="date"
+                value={newStartDate}
+                onChange={(e) => setNewStartDate(e.target.value)}
+                data-testid="input-new-start-date"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowStartDateModal(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={() => updateStartDateMutation.mutate()}
+              disabled={updateStartDateMutation.isPending}
+              data-testid="button-save-start-date"
             >
               {t("common.save")}
             </Button>

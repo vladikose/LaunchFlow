@@ -700,6 +700,99 @@ export async function registerRoutes(
     }
   });
 
+  // Stage file upload - get signed URL for upload
+  app.get("/api/stages/:id/upload-url", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Verify stage exists and user has access
+      const stage = await storage.getStageById(req.params.id);
+      if (!stage) {
+        return res.status(404).json({ message: "Stage not found" });
+      }
+      
+      const project = await storage.getProjectById(stage.projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      const user = await storage.getUser(authUser.id);
+      if (!user || user.companyId !== project.companyId) {
+        return res.status(403).json({ message: "Access denied to this stage" });
+      }
+      
+      const fileName = req.query.fileName as string;
+      if (!fileName) {
+        return res.status(400).json({ message: "fileName query parameter required" });
+      }
+      
+      const url = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ url, fileName });
+    } catch (error) {
+      console.error("Error getting stage file upload URL:", error);
+      res.status(500).json({ message: "Failed to get upload URL" });
+    }
+  });
+
+  // Stage file record - create database record after upload
+  const createStageFileSchema = z.object({
+    fileName: z.string().min(1, "File name is required"),
+    fileUrl: z.string().min(1, "File URL is required"),
+    fileType: z.string().optional(),
+    fileSize: z.number().optional(),
+    checklistItemKey: z.string().optional(),
+  });
+
+  app.post("/api/stages/:id/files", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      // Verify stage exists and user has access
+      const stage = await storage.getStageById(req.params.id);
+      if (!stage) {
+        return res.status(404).json({ message: "Stage not found" });
+      }
+      
+      const project = await storage.getProjectById(stage.projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      const user = await storage.getUser(authUser.id);
+      if (!user || user.companyId !== project.companyId) {
+        return res.status(403).json({ message: "Access denied to this stage" });
+      }
+      
+      const validatedData = createStageFileSchema.parse(req.body);
+      
+      const file = await storage.createStageFile({
+        stageId: req.params.id,
+        fileName: validatedData.fileName,
+        fileUrl: validatedData.fileUrl,
+        fileType: validatedData.fileType || null,
+        fileSize: validatedData.fileSize || null,
+        uploadedById: authUser.id,
+        version: 1,
+        isLatest: true,
+        checklistItemKey: validatedData.checklistItemKey || null,
+      });
+      
+      res.status(201).json(file);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error("Error creating stage file record:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.get("/api/objects/upload-url", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const url = await objectStorageService.getObjectEntityUploadURL();
