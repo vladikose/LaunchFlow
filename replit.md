@@ -127,3 +127,28 @@ Preferred communication style: Simple, everyday language.
 - Consistent spacing scale (2, 4, 6, 8, 12, 16)
 - Border radius tokens (sm: 3px, md: 6px, lg: 9px)
 - Elevation system using subtle shadows and overlays
+
+## Recent Changes
+
+### Custom Fields for Stage Templates
+- Stage templates now support custom fields (text, textarea, number types)
+- Custom fields are defined at the template level and stored in customFields JSONB column
+- Stage instances store field values in customFieldsData JSONB column
+- Admin panel supports adding, editing, reordering, and removing custom fields
+
+### Admin Panel Enhancements
+- Template activation/deactivation with isActive toggle
+- Drag-and-drop style reordering of stage templates with position controls
+- Custom field management with multi-language labels (EN, RU, ZH)
+- Visual indicators for inactive templates and field counts
+
+### Checklist Improvements
+- Per-checklist-item file uploads with accepted file type filtering
+- File preview icons based on MIME type (image, video, PDF, CAD files)
+- Progress tracking for checklist completion
+- Conditional certification substages with toggle control
+
+### File Management
+- Checklist-item association for uploaded files via checklistItemKey
+- Stage-specific file type restrictions (images for Render, STEP for 3D Model)
+- Mini preview icons in file listings

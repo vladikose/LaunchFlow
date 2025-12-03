@@ -51,8 +51,12 @@ import {
   FileIcon,
   Check,
   List,
+  FileText,
+  Image as ImageIcon,
+  Film,
+  File,
 } from "lucide-react";
-import type { StageWithRelations, User, CommentWithUser, StageFile } from "@shared/schema";
+import type { StageWithRelations, User, CommentWithUser, StageFile, CustomField } from "@shared/schema";
 
 interface StageCardProps {
   stage: StageWithRelations;
@@ -105,6 +109,9 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
   const [showHistory, setShowHistory] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadingChecklistItem, setUploadingChecklistItem] = useState<string | null>(null);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>(
+    (stage.customFieldsData as Record<string, string>) || {}
+  );
 
   const { data: historyData } = useQuery<{
     statusHistory: Array<{
@@ -219,7 +226,7 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
   });
 
   const updateChecklistMutation = useMutation({
-    mutationFn: async (data: { checklistData?: Record<string, boolean>; conditionalEnabled?: boolean; conditionalSubstagesData?: Record<string, boolean> }) => {
+    mutationFn: async (data: { checklistData?: Record<string, boolean>; conditionalEnabled?: boolean; conditionalSubstagesData?: Record<string, boolean>; status?: string; customFieldsData?: Record<string, string> }) => {
       return apiRequest("PATCH", `/api/stages/${stage.id}`, data);
     },
     onSuccess: () => {
@@ -253,9 +260,55 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
     updateChecklistMutation.mutate({ conditionalSubstagesData: newSubstagesData });
   };
 
+  const handleCustomFieldChange = (fieldKey: string, value: string) => {
+    setCustomFieldValues(prev => ({ ...prev, [fieldKey]: value }));
+  };
+
+  const handleCustomFieldBlur = (fieldKey: string) => {
+    const currentValue = (stage.customFieldsData as Record<string, string>)?.[fieldKey] || "";
+    if (customFieldValues[fieldKey] !== currentValue) {
+      updateChecklistMutation.mutate({ customFieldsData: customFieldValues });
+    }
+  };
+
+  const getCustomFieldLabel = (field: CustomField) => {
+    const lang = (localStorage.getItem("i18nextLng") || "en").substring(0, 2);
+    if (lang === "ru" && field.labelRu) return field.labelRu;
+    if (lang === "zh" && field.labelZh) return field.labelZh;
+    return field.label;
+  };
+
+  const customFields = (stage.template?.customFields as CustomField[]) || [];
+  const hasCustomFields = customFields.length > 0;
+
   // Get files for a specific checklist item
   const getFilesForChecklistItem = (itemKey: string) => {
     return (stage.files || []).filter(f => f.checklistItemKey === itemKey);
+  };
+
+  // Get file preview icon based on file type
+  const getFilePreviewIcon = (file: StageFile) => {
+    const fileType = file.fileType || "";
+    const fileName = file.fileName?.toLowerCase() || "";
+    
+    if (fileType.startsWith("image/")) {
+      return <ImageIcon className="h-4 w-4 text-green-500" />;
+    }
+    if (fileType.startsWith("video/")) {
+      return <Film className="h-4 w-4 text-purple-500" />;
+    }
+    if (fileType === "application/pdf" || fileName.endsWith(".pdf")) {
+      return <FileText className="h-4 w-4 text-red-500" />;
+    }
+    if (fileName.endsWith(".step") || fileName.endsWith(".stp") || fileName.endsWith(".stl")) {
+      return <File className="h-4 w-4 text-blue-500" />;
+    }
+    return <FileIcon className="h-4 w-4 text-muted-foreground" />;
+  };
+
+  // Check if file is an image for thumbnail preview
+  const isImageFile = (file: StageFile) => {
+    return file.fileType?.startsWith("image/") || false;
   };
 
   // Get accepted file types based on stage name
@@ -688,7 +741,15 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
                                 className="flex items-center gap-2 text-xs text-muted-foreground"
                                 data-testid={`file-${stage.id}-${itemKey}-${file.id}`}
                               >
-                                <FileIcon className="h-3 w-3 flex-shrink-0" />
+                                {isImageFile(file) ? (
+                                  <img 
+                                    src={file.fileUrl} 
+                                    alt={file.fileName}
+                                    className="h-8 w-8 object-cover rounded flex-shrink-0"
+                                  />
+                                ) : (
+                                  getFilePreviewIcon(file)
+                                )}
                                 <span className="truncate flex-1">{file.fileName}</span>
                                 {file.isLatest && (
                                   <Badge variant="outline" className="text-xs px-1">
@@ -786,7 +847,7 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
                                   className="flex items-center gap-2 text-xs text-muted-foreground"
                                   data-testid={`file-substage-${stage.id}-${itemKey}-${file.id}`}
                                 >
-                                  <FileIcon className="h-3 w-3 flex-shrink-0" />
+                                  {getFilePreviewIcon(file)}
                                   <span className="truncate flex-1">{file.fileName}</span>
                                   {file.isLatest && (
                                     <Badge variant="outline" className="text-xs px-1">
@@ -802,6 +863,49 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
                     })}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Custom Text Fields Section */}
+            {hasCustomFields && (
+              <div className="space-y-3 p-4 rounded-lg bg-muted/30 border" data-testid={`custom-fields-section-${stage.id}`}>
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  {t("stages.customFields")}
+                </h4>
+                <div className="space-y-4">
+                  {customFields
+                    .sort((a, b) => a.position - b.position)
+                    .map((field) => (
+                      <div key={field.key} className="space-y-2">
+                        <label htmlFor={`field-${stage.id}-${field.key}`} className="text-sm font-medium">
+                          {getCustomFieldLabel(field)}
+                          {field.required && <span className="text-red-500 ml-1">*</span>}
+                        </label>
+                        {field.type === "textarea" ? (
+                          <Textarea
+                            id={`field-${stage.id}-${field.key}`}
+                            value={customFieldValues[field.key] || ""}
+                            onChange={(e) => handleCustomFieldChange(field.key, e.target.value)}
+                            onBlur={() => handleCustomFieldBlur(field.key)}
+                            placeholder={getCustomFieldLabel(field)}
+                            className="min-h-24"
+                            data-testid={`textarea-${stage.id}-${field.key}`}
+                          />
+                        ) : (
+                          <Input
+                            id={`field-${stage.id}-${field.key}`}
+                            type={field.type === "number" ? "number" : "text"}
+                            value={customFieldValues[field.key] || ""}
+                            onChange={(e) => handleCustomFieldChange(field.key, e.target.value)}
+                            onBlur={() => handleCustomFieldBlur(field.key)}
+                            placeholder={getCustomFieldLabel(field)}
+                            data-testid={`input-${stage.id}-${field.key}`}
+                          />
+                        )}
+                      </div>
+                    ))}
+                </div>
               </div>
             )}
 
@@ -844,7 +948,15 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
                           className="flex items-center gap-3 p-2 rounded-lg bg-muted/50"
                           data-testid={`file-${file.id}`}
                         >
-                          <FileIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                          {isImageFile(file) ? (
+                            <img 
+                              src={file.fileUrl} 
+                              alt={file.fileName}
+                              className="h-10 w-10 object-cover rounded flex-shrink-0"
+                            />
+                          ) : (
+                            getFilePreviewIcon(file)
+                          )}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium truncate">{file.fileName}</p>
                             <p className="text-xs text-muted-foreground">

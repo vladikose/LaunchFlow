@@ -58,6 +58,8 @@ export const projects = pgTable("projects", {
   description: text("description"),
   responsibleUserId: varchar("responsible_user_id").references(() => users.id),
   deadline: timestamp("deadline"),
+  coverImageId: varchar("cover_image_id"),
+  excludedTemplateIds: jsonb("excluded_template_ids").$type<string[]>(),
   createdById: varchar("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -73,6 +75,17 @@ export const products = pgTable("products", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Custom field type for stage templates
+export type CustomField = {
+  key: string;
+  label: string;
+  labelRu?: string;
+  labelZh?: string;
+  type: 'text' | 'textarea' | 'number';
+  position: number;
+  required?: boolean;
+};
+
 // Stage templates (for admin customization)
 export const stageTemplates = pgTable("stage_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -86,6 +99,7 @@ export const stageTemplates = pgTable("stage_templates", {
   checklistItems: jsonb("checklist_items").$type<string[]>(),
   hasConditionalSubstages: boolean("has_conditional_substages").default(false),
   conditionalSubstages: jsonb("conditional_substages").$type<string[]>(),
+  customFields: jsonb("custom_fields").$type<CustomField[]>(),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -103,6 +117,7 @@ export const stages = pgTable("stages", {
   checklistData: jsonb("checklist_data").$type<Record<string, boolean>>(),
   conditionalEnabled: boolean("conditional_enabled").default(false),
   conditionalSubstagesData: jsonb("conditional_substages_data").$type<Record<string, boolean>>(),
+  customFieldsData: jsonb("custom_fields_data").$type<Record<string, string>>(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

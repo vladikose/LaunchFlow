@@ -504,6 +504,7 @@ export async function registerRoutes(
     checklistData: z.record(z.any()).optional().nullable(),
     conditionalEnabled: z.boolean().optional(),
     conditionalSubstagesData: z.record(z.any()).optional().nullable(),
+    customFieldsData: z.record(z.string()).optional().nullable(),
   });
 
   app.patch("/api/stages/:id", isAuthenticated, async (req: Request, res: Response) => {
@@ -734,14 +735,27 @@ export async function registerRoutes(
     }
   });
 
+  const customFieldSchema = z.object({
+    key: z.string(),
+    label: z.string(),
+    labelRu: z.string().optional(),
+    labelZh: z.string().optional(),
+    type: z.enum(["text", "textarea", "number"]),
+    position: z.number(),
+  });
+
   const createTemplateSchema = z.object({
     name: z.string().min(1),
     nameRu: z.string().optional(),
     nameZh: z.string().optional(),
     description: z.string().optional(),
-    position: z.number(),
+    position: z.number().optional(),
     hasChecklist: z.boolean().optional(),
     checklistItems: z.array(z.string()).optional(),
+    hasConditionalSubstages: z.boolean().optional(),
+    conditionalSubstages: z.array(z.string()).optional(),
+    customFields: z.array(customFieldSchema).optional(),
+    isActive: z.boolean().optional(),
   });
 
   app.post("/api/stage-templates", isAuthenticated, async (req: Request, res: Response) => {
@@ -759,18 +773,23 @@ export async function registerRoutes(
       const companyId = await ensureUserCompany(authUser.id);
       const validatedData = createTemplateSchema.parse(req.body);
       
+      // Get existing templates to determine position if not provided
+      const existingTemplates = await storage.getStageTemplatesByCompany(companyId);
+      const position = validatedData.position ?? (existingTemplates.length + 1);
+      
       const template = await storage.createStageTemplate({
         companyId,
         name: validatedData.name,
         nameRu: validatedData.nameRu || null,
         nameZh: validatedData.nameZh || null,
         description: validatedData.description || null,
-        position: validatedData.position,
+        position,
         hasChecklist: validatedData.hasChecklist || false,
         checklistItems: validatedData.checklistItems || null,
-        hasConditionalSubstages: false,
-        conditionalSubstages: null,
-        isActive: true,
+        hasConditionalSubstages: validatedData.hasConditionalSubstages || false,
+        conditionalSubstages: validatedData.conditionalSubstages || null,
+        customFields: validatedData.customFields || null,
+        isActive: validatedData.isActive ?? true,
       });
 
       res.status(201).json(template);
@@ -795,17 +814,22 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Admin access required" });
       }
       
-      const validatedData = createTemplateSchema.parse(req.body);
+      const validatedData = createTemplateSchema.partial().parse(req.body);
       
-      const template = await storage.updateStageTemplate(req.params.id, {
-        name: validatedData.name,
-        nameRu: validatedData.nameRu || null,
-        nameZh: validatedData.nameZh || null,
-        description: validatedData.description || null,
-        position: validatedData.position,
-        hasChecklist: validatedData.hasChecklist || false,
-        checklistItems: validatedData.checklistItems || null,
-      });
+      const updateData: Record<string, any> = {};
+      if (validatedData.name !== undefined) updateData.name = validatedData.name;
+      if (validatedData.nameRu !== undefined) updateData.nameRu = validatedData.nameRu || null;
+      if (validatedData.nameZh !== undefined) updateData.nameZh = validatedData.nameZh || null;
+      if (validatedData.description !== undefined) updateData.description = validatedData.description || null;
+      if (validatedData.position !== undefined) updateData.position = validatedData.position;
+      if (validatedData.hasChecklist !== undefined) updateData.hasChecklist = validatedData.hasChecklist;
+      if (validatedData.checklistItems !== undefined) updateData.checklistItems = validatedData.checklistItems || null;
+      if (validatedData.hasConditionalSubstages !== undefined) updateData.hasConditionalSubstages = validatedData.hasConditionalSubstages;
+      if (validatedData.conditionalSubstages !== undefined) updateData.conditionalSubstages = validatedData.conditionalSubstages || null;
+      if (validatedData.customFields !== undefined) updateData.customFields = validatedData.customFields || null;
+      if (validatedData.isActive !== undefined) updateData.isActive = validatedData.isActive;
+      
+      const template = await storage.updateStageTemplate(req.params.id, updateData);
 
       if (!template) {
         return res.status(404).json({ message: "Template not found" });
