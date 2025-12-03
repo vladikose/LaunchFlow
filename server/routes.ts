@@ -878,6 +878,28 @@ export async function registerRoutes(
     }
   });
 
+  // File type validation helper
+  function validateFileType(fileName: string, stageName: string): { valid: boolean; message?: string } {
+    const ext = fileName.toLowerCase().split('.').pop() || '';
+    
+    // Stage-specific file type rules
+    if (stageName === 'Render') {
+      const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'];
+      if (!imageExts.includes(ext)) {
+        return { valid: false, message: 'Render stage requires image files (jpg, png, gif, webp, svg)' };
+      }
+    }
+    
+    if (stageName === '3D Model') {
+      const stepExts = ['step', 'stp', 'stl'];
+      if (!stepExts.includes(ext)) {
+        return { valid: false, message: '3D Model stage requires STEP/STP/STL files' };
+      }
+    }
+    
+    return { valid: true };
+  }
+  
   // Stage file record - create database record after upload
   const createStageFileSchema = z.object({
     fileName: z.string().min(1, "File name is required"),
@@ -911,6 +933,12 @@ export async function registerRoutes(
       }
       
       const validatedData = createStageFileSchema.parse(req.body);
+      
+      // Validate file type based on stage
+      const fileTypeValidation = validateFileType(validatedData.fileName, stage.name);
+      if (!fileTypeValidation.valid) {
+        return res.status(400).json({ message: fileTypeValidation.message });
+      }
       
       const file = await storage.createStageFile({
         stageId: req.params.id,
