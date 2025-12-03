@@ -50,6 +50,19 @@ export default function ProjectDetail() {
     queryKey: ["/api/users"],
   });
 
+  const generateStagesMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/projects/${projectId}/generate-stages`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      toast({ title: t("stages.stagesGenerated") });
+    },
+    onError: (error: Error) => {
+      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+    },
+  });
+
   const isOverdue = project?.deadline && new Date(project.deadline) < new Date();
 
   if (isLoading) {
@@ -190,10 +203,18 @@ export default function ProjectDetail() {
                 <Card>
                   <CardContent className="py-12 text-center">
                     <Layers className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No stages yet</h3>
-                    <p className="text-muted-foreground">
-                      Stages will be created based on the project templates.
+                    <h3 className="text-lg font-medium mb-2">{t("stages.noStages")}</h3>
+                    <p className="text-muted-foreground mb-4">
+                      {t("stages.noStagesDescription")}
                     </p>
+                    <Button
+                      onClick={() => generateStagesMutation.mutate()}
+                      disabled={generateStagesMutation.isPending}
+                      data-testid="button-generate-stages"
+                    >
+                      <Layers className="h-4 w-4 mr-2" />
+                      {generateStagesMutation.isPending ? t("common.loading") : t("stages.generateStages")}
+                    </Button>
                   </CardContent>
                 </Card>
               )}

@@ -306,6 +306,56 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/projects/:id/generate-stages", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const project = await storage.getProjectById(req.params.id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      const existingStages = await storage.getStagesByProject(project.id);
+      if (existingStages.length > 0) {
+        return res.status(400).json({ message: "Project already has stages" });
+      }
+
+      const templates = await storage.getStageTemplatesByCompany(project.companyId);
+      
+      const uniqueTemplates = templates.reduce((acc, template) => {
+        const existingPos = acc.find(t => t.position === template.position);
+        if (!existingPos) {
+          acc.push(template);
+        }
+        return acc;
+      }, [] as typeof templates);
+
+      for (const template of uniqueTemplates) {
+        await storage.createStage({
+          projectId: project.id,
+          templateId: template.id,
+          name: template.name,
+          position: template.position,
+          status: "waiting",
+          startDate: null,
+          deadline: null,
+          checklistData: template.hasChecklist ? {} : null,
+          conditionalEnabled: false,
+          conditionalSubstagesData: null,
+        });
+      }
+
+      const updatedProject = await storage.getProjectById(project.id);
+      res.json(updatedProject);
+    } catch (error) {
+      console.error("Error generating stages:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   const updateStageSchema = z.object({
     status: z.enum(["waiting", "in_progress", "skip", "completed"]).optional(),
     startDate: z.string().optional().nullable(),
