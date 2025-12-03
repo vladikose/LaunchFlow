@@ -906,7 +906,7 @@ export async function registerRoutes(
     fileUrl: z.string().min(1, "File URL is required"),
     fileType: z.string().optional(),
     fileSize: z.number().optional(),
-    checklistItemKey: z.string().optional(),
+    checklistItemKey: z.string().nullable().optional(),
   });
 
   app.post("/api/stages/:id/files", isAuthenticated, async (req: Request, res: Response) => {
