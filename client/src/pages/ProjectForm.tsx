@@ -33,7 +33,7 @@ import type { User, Project, Product } from "@shared/schema";
 const productSchema = z.object({
   article: z.string().optional(),
   name: z.string(),
-  quantity: z.coerce.number().optional(),
+  barcode: z.string().optional(),
 });
 
 const projectFormSchema = z.object({
@@ -84,7 +84,7 @@ export default function ProjectForm() {
             ? existingProject.products.map((p) => ({
                 article: p.article || "",
                 name: p.name,
-                quantity: p.quantity || undefined,
+                barcode: p.barcode || "",
               }))
             : [],
         }
@@ -153,7 +153,7 @@ export default function ProjectForm() {
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} data-testid="button-back">
+        <Button variant="ghost" size="icon" onClick={() => window.history.back()} data-testid="button-back">
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -262,7 +262,7 @@ export default function ProjectForm() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => append({ article: "", name: "", quantity: undefined })}
+                onClick={() => append({ article: "", name: "", barcode: "" })}
                 data-testid="button-add-product"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -275,7 +275,7 @@ export default function ProjectForm() {
                   <div className="hidden md:grid md:grid-cols-[1fr_2fr_1fr_auto] gap-4 text-sm font-medium text-muted-foreground">
                     <div>{t("projects.article")}</div>
                     <div>{t("projects.productName")}</div>
-                    <div>{t("projects.quantity")}</div>
+                    <div>{t("projects.barcode")}</div>
                     <div className="w-10"></div>
                   </div>
                 )}
@@ -324,17 +324,16 @@ export default function ProjectForm() {
                     />
                     <FormField
                       control={form.control}
-                      name={`products.${index}.quantity`}
+                      name={`products.${index}.barcode`}
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="md:hidden">{t("projects.quantity")}</FormLabel>
+                          <FormLabel className="md:hidden">{t("projects.barcode")}</FormLabel>
                           <FormControl>
                             <Input
-                              type="number"
                               {...field}
                               value={field.value ?? ""}
-                              placeholder="Qty"
-                              data-testid={`input-product-quantity-${index}`}
+                              placeholder="Barcode"
+                              data-testid={`input-product-barcode-${index}`}
                             />
                           </FormControl>
                         </FormItem>
@@ -360,7 +359,7 @@ export default function ProjectForm() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate(-1)}
+              onClick={() => window.history.back()}
               data-testid="button-cancel"
             >
               {t("common.cancel")}

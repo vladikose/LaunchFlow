@@ -69,7 +69,7 @@ export const products = pgTable("products", {
   projectId: varchar("project_id").references(() => projects.id, { onDelete: "cascade" }).notNull(),
   article: varchar("article", { length: 100 }),
   name: varchar("name", { length: 255 }).notNull(),
-  quantity: integer("quantity"),
+  barcode: varchar("barcode", { length: 50 }),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

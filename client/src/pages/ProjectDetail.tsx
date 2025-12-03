@@ -213,7 +213,7 @@ export default function ProjectDetail() {
                     <TableRow>
                       <TableHead>{t("projects.article")}</TableHead>
                       <TableHead>{t("projects.productName")}</TableHead>
-                      <TableHead className="text-right">{t("projects.quantity")}</TableHead>
+                      <TableHead className="text-right">{t("projects.barcode")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -223,7 +223,7 @@ export default function ProjectDetail() {
                           {product.article || "-"}
                         </TableCell>
                         <TableCell>{product.name}</TableCell>
-                        <TableCell className="text-right">{product.quantity || "-"}</TableCell>
+                        <TableCell className="text-right font-mono text-sm">{product.barcode || "-"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

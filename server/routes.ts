@@ -185,7 +185,7 @@ export async function registerRoutes(
       z.object({
         article: z.string().optional(),
         name: z.string().min(1),
-        quantity: z.number().optional(),
+        barcode: z.string().optional(),
       })
     ).optional(),
   });
@@ -216,7 +216,7 @@ export async function registerRoutes(
               projectId: project.id,
               article: product.article || null,
               name: product.name,
-              quantity: product.quantity || null,
+              barcode: product.barcode || null,
             });
           }
         }
@@ -276,7 +276,7 @@ export async function registerRoutes(
               projectId: project.id,
               article: product.article || null,
               name: product.name,
-              quantity: product.quantity || null,
+              barcode: product.barcode || null,
             });
           }
         }
