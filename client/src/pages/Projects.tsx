@@ -151,26 +151,22 @@ export default function Projects() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
             <Card key={i}>
-              <CardHeader className="pb-2">
-                <div className="flex items-start gap-3">
-                  <Skeleton className="h-14 w-14 rounded-lg flex-shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-5 w-3/4" />
-                    <Skeleton className="h-1.5 w-full" />
-                  </div>
+              <CardContent className="p-3">
+                <Skeleton className="h-32 w-full rounded-lg mb-3" />
+                <Skeleton className="h-4 w-3/4 mb-2" />
+                <Skeleton className="h-1.5 w-full mb-3" />
+                <div className="flex justify-end">
+                  <Skeleton className="h-3 w-24" />
                 </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <Skeleton className="h-4 w-1/2" />
               </CardContent>
             </Card>
           ))}
         </div>
       ) : filteredProjects && filteredProjects.length > 0 ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {filteredProjects.map((project) => {
             const overdue = isOverdue(project);
             const progress = getProgress(project);
@@ -178,54 +174,47 @@ export default function Projects() {
             return (
               <Link key={project.id} href={`/projects/${project.id}`}>
                 <Card
-                  className={`hover-elevate cursor-pointer transition-all ${
+                  className={`hover-elevate cursor-pointer transition-all h-full ${
                     overdue ? "border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-950/20" : ""
                   }`}
                   data-testid={`card-project-${project.id}`}
                 >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start gap-3">
-                      <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 overflow-hidden">
-                        {imageSrc ? (
-                          <img
-                            src={imageSrc}
-                            alt={project.name}
-                            className="h-full w-full object-contain"
-                          />
-                        ) : (
-                          <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-semibold truncate">{project.name}</h3>
-                          {overdue && (
-                            <Badge variant="destructive" className="flex-shrink-0">
-                              <AlertTriangle className="h-3 w-3 mr-1" />
-                              {t("projects.status.overdue")}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-2">
-                          <Progress value={progress} className="h-1.5 flex-1" />
-                          <span className="text-xs text-muted-foreground w-8">{progress}%</span>
-                        </div>
-                      </div>
+                  <CardContent className="p-3 flex flex-col h-full">
+                    <div className="h-32 w-full rounded-lg bg-muted flex items-center justify-center overflow-hidden mb-3">
+                      {imageSrc ? (
+                        <img
+                          src={imageSrc}
+                          alt={project.name}
+                          className="h-full w-full object-contain"
+                        />
+                      ) : (
+                        <ImageIcon className="h-10 w-10 text-muted-foreground" />
+                      )}
                     </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <h3 className="font-semibold text-sm truncate flex-1">{project.name}</h3>
+                      {overdue && (
+                        <Badge variant="destructive" className="flex-shrink-0 text-xs px-1.5 py-0.5">
+                          <AlertTriangle className="h-3 w-3" />
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Progress value={progress} className="h-1.5 flex-1" />
+                      <span className="text-xs text-muted-foreground">{progress}%</span>
+                    </div>
+                    <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground mt-auto">
                       {project.responsibleUserName && (
                         <div className="flex items-center gap-1">
-                          <User className="h-3.5 w-3.5" />
-                          <span className="truncate max-w-[120px]">
+                          <User className="h-3 w-3" />
+                          <span className="truncate max-w-[80px]">
                             {project.responsibleUserName}
                           </span>
                         </div>
                       )}
                       {project.deadline && (
                         <div className="flex items-center gap-1">
-                          <Calendar className="h-3.5 w-3.5" />
+                          <Calendar className="h-3 w-3" />
                           <span>{new Date(project.deadline).toLocaleDateString()}</span>
                         </div>
                       )}
