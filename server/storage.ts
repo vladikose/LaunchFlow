@@ -834,10 +834,21 @@ export class DatabaseStorage implements IStorage {
   async deleteUser(userId: string): Promise<void> {
     // Full deletion - only for superadmin
     // First, clean up related references
+    
+    // Nullable references - set to null
     await db.update(projects).set({ responsibleUserId: null }).where(eq(projects.responsibleUserId, userId));
     await db.update(projects).set({ createdById: null }).where(eq(projects.createdById, userId));
     await db.update(companyInvites).set({ createdById: null }).where(eq(companyInvites.createdById, userId));
     await db.update(companyInvites).set({ usedById: null }).where(eq(companyInvites.usedById, userId));
+    await db.update(stageFiles).set({ uploadedById: null }).where(eq(stageFiles.uploadedById, userId));
+    
+    // Non-nullable references - delete related records
+    await db.delete(comments).where(eq(comments.userId, userId));
+    await db.delete(tasks).where(eq(tasks.assignedToId, userId));
+    await db.delete(tasks).where(eq(tasks.assignedById, userId));
+    await db.delete(deadlineHistory).where(eq(deadlineHistory.changedById, userId));
+    await db.delete(statusHistory).where(eq(statusHistory.changedById, userId));
+    
     // Then delete the user
     await db.delete(users).where(eq(users.id, userId));
   }
