@@ -243,7 +243,7 @@ export default function ProjectDetail() {
                     <img
                       src={getImageSrc(currentCoverImageId)}
                       alt={project.name}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain"
                     />
                     {renderImages.length > 1 && (
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
