@@ -86,7 +86,13 @@ export default function Landing() {
               <div className="flex flex-wrap items-center justify-center gap-4">
                 <Button size="lg" asChild data-testid="button-cta-login">
                   <a href="/api/login">
-                    {t("landing.cta")}
+                    {t("landing.loginRegister")}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </a>
+                </Button>
+                <Button size="lg" variant="outline" asChild data-testid="button-cta-create-company">
+                  <a href="/api/login">
+                    {t("landing.createCompany")}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </a>
                 </Button>

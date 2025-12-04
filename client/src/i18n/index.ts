@@ -50,6 +50,8 @@ const resources = {
         subtitle: "Product Launch Management Platform",
         description: "Streamline your product launches with comprehensive workflow management, deadline tracking, and team collaboration.",
         cta: "Get Started",
+        loginRegister: "Login / Register",
+        createCompany: "Create Company",
         features: {
           timeline: "Visual Timeline",
           timelineDesc: "Track every stage of your product launch with an intuitive vertical roadmap",
@@ -501,6 +503,8 @@ const resources = {
         subtitle: "Платформа управления запуском продуктов",
         description: "Оптимизируйте запуск продуктов с помощью комплексного управления процессами, контроля сроков и командной работы.",
         cta: "Начать работу",
+        loginRegister: "Войти / Зарегистрироваться",
+        createCompany: "Создать компанию",
         features: {
           timeline: "Визуальный таймлайн",
           timelineDesc: "Отслеживайте каждый этап запуска продукта с интуитивной дорожной картой",
@@ -952,6 +956,8 @@ const resources = {
         subtitle: "产品上市管理平台",
         description: "通过全面的工作流管理、截止日期跟踪和团队协作来简化产品上市流程。",
         cta: "开始使用",
+        loginRegister: "登录 / 注册",
+        createCompany: "创建公司",
         features: {
           timeline: "可视化时间线",
           timelineDesc: "通过直观的垂直路线图跟踪产品上市的每个阶段",
