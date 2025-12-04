@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -27,7 +26,6 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -37,65 +35,39 @@ import {
   Calendar,
   Paperclip,
   MessageSquare,
-  UserPlus,
-  History,
   ChevronDown,
   ChevronUp,
   Send,
-  Upload,
   CheckCircle2,
-  Clock,
-  XCircle,
-  PlayCircle,
-  AlertTriangle,
   FileIcon,
-  Check,
-  List,
   FileText,
   Image as ImageIcon,
   Film,
   File,
+  UserPlus,
+  History,
+  PlayCircle,
+  Clock,
 } from "lucide-react";
-import type { StageWithRelations, User, CommentWithUser, StageFile, CustomField } from "@shared/schema";
+import type { StageWithRelations, User, StageFile, CustomField } from "@shared/schema";
 
 interface StageCardProps {
   stage: StageWithRelations;
   projectId: string;
   users: User[];
-  isLast?: boolean;
+  position: number;
+  isExpanded: boolean;
+  onToggle: () => void;
 }
 
-const statusConfig = {
-  waiting: {
-    label: "stages.status.waiting",
-    icon: Clock,
-    color: "bg-muted text-muted-foreground",
-  },
-  in_progress: {
-    label: "stages.status.in_progress",
-    icon: PlayCircle,
-    color: "bg-primary/10 text-primary",
-  },
-  skip: {
-    label: "stages.status.skip",
-    icon: XCircle,
-    color: "bg-muted text-muted-foreground",
-  },
-  completed: {
-    label: "stages.status.completed",
-    icon: CheckCircle2,
-    color: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
-  },
-};
-
-export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
-  const { t } = useTranslation();
+export function StageCard({ stage, projectId, users, position, isExpanded, onToggle }: StageCardProps) {
+  const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
-  const [isExpanded, setIsExpanded] = useState(false);
   const [showDeadlineModal, setShowDeadlineModal] = useState(false);
   const [showStartDateModal, setShowStartDateModal] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [deadlineReason, setDeadlineReason] = useState("");
   const [newDeadline, setNewDeadline] = useState(
     stage.deadline ? new Date(stage.deadline).toISOString().split("T")[0] : ""
@@ -106,7 +78,6 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
   const [taskDescription, setTaskDescription] = useState("");
   const [taskAssignee, setTaskAssignee] = useState("");
   const [newComment, setNewComment] = useState("");
-  const [showHistory, setShowHistory] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadingChecklistItem, setUploadingChecklistItem] = useState<string | null>(null);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>(
@@ -134,14 +105,9 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
     enabled: showHistory,
   });
 
-  const isOverdue =
-    stage.deadline &&
-    new Date(stage.deadline) < new Date() &&
-    stage.status !== "completed" &&
-    stage.status !== "skip";
-
-  const statusInfo = statusConfig[stage.status || "waiting"];
-  const StatusIcon = statusInfo.icon;
+  const isCompleted = stage.status === "completed";
+  const commentsCount = stage.comments?.length || 0;
+  const filesCount = stage.files?.length || 0;
 
   const updateStatusMutation = useMutation({
     mutationFn: async (newStatus: string) => {
@@ -149,10 +115,10 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
-      toast({ title: "Status updated" });
+      toast({ title: t("stages.statusUpdated") || "Status updated" });
     },
     onError: () => {
-      toast({ title: "Failed to update status", variant: "destructive" });
+      toast({ title: t("stages.statusUpdateFailed") || "Failed to update status", variant: "destructive" });
     },
   });
 
@@ -202,10 +168,10 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
       setShowTaskModal(false);
       setTaskDescription("");
       setTaskAssignee("");
-      toast({ title: "Task assigned" });
+      toast({ title: t("tasks.taskAssigned") || "Task assigned" });
     },
     onError: () => {
-      toast({ title: "Failed to assign task", variant: "destructive" });
+      toast({ title: t("tasks.taskAssignFailed") || "Failed to assign task", variant: "destructive" });
     },
   });
 
@@ -233,7 +199,7 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
     },
     onError: () => {
-      toast({ title: "Failed to update checklist", variant: "destructive" });
+      toast({ title: "Failed to update", variant: "destructive" });
     },
   });
 
@@ -272,21 +238,22 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
   };
 
   const getCustomFieldLabel = (field: CustomField) => {
-    const lang = (localStorage.getItem("i18nextLng") || "en").substring(0, 2);
+    const lang = i18n.language.substring(0, 2);
     if (lang === "ru" && field.labelRu) return field.labelRu;
     if (lang === "zh" && field.labelZh) return field.labelZh;
     return field.label;
   };
 
   const customFields = (stage.template?.customFields as CustomField[]) || [];
-  const hasCustomFields = customFields.length > 0;
+  const hasChecklist = stage.template?.hasChecklist && stage.template?.checklistItems?.length;
+  const checklistItems = stage.template?.checklistItems || [];
+  const hasConditionalSubstages = stage.template?.hasConditionalSubstages && stage.template?.conditionalSubstages?.length;
+  const conditionalSubstages = stage.template?.conditionalSubstages || [];
 
-  // Get files for a specific checklist item
   const getFilesForChecklistItem = (itemKey: string) => {
     return (stage.files || []).filter(f => f.checklistItemKey === itemKey);
   };
 
-  // Get file preview icon based on file type
   const getFilePreviewIcon = (file: StageFile) => {
     const fileType = file.fileType || "";
     const fileName = file.fileName?.toLowerCase() || "";
@@ -306,12 +273,6 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
     return <FileIcon className="h-4 w-4 text-muted-foreground" />;
   };
 
-  // Check if file is an image for thumbnail preview
-  const isImageFile = (file: StageFile) => {
-    return file.fileType?.startsWith("image/") || false;
-  };
-
-  // Get accepted file types based on stage name
   const getAcceptedFileTypes = (stageName: string, itemKey?: string) => {
     if (stageName === "Render" || itemKey === "render") return "image/*";
     if (stageName === "3D Model") return ".step,.stp,.stl";
@@ -320,9 +281,7 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
     return "*";
   };
 
-  // Get translation key for checklist item - tries multiple translation namespaces
   const getChecklistItemLabel = (itemKey: string) => {
-    // Try different translation sections in order of specificity
     const translationPaths = [
       `stages.checklistItems.${itemKey}`,
       `stages.certificationSubstages.${itemKey}`,
@@ -330,24 +289,14 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
     ];
     
     for (const path of translationPaths) {
-      // i18next with returnNull and returnEmptyString false returns the key if not found
       const translation = t(path, { defaultValue: null as any });
       if (translation && translation !== path) {
         return translation;
       }
     }
     
-    // Fallback: format the key to be human-readable
     return itemKey.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()).trim();
   };
-
-  // Check if stage has checklist
-  const hasChecklist = stage.template?.hasChecklist && stage.template?.checklistItems?.length;
-  const checklistItems = stage.template?.checklistItems || [];
-  
-  // Check if stage has conditional substages (certification)
-  const hasConditionalSubstages = stage.template?.hasConditionalSubstages && stage.template?.conditionalSubstages?.length;
-  const conditionalSubstages = stage.template?.conditionalSubstages || [];
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, checklistItemKey?: string) => {
     const file = event.target.files?.[0];
@@ -360,7 +309,6 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
     }
     
     try {
-      // Step 1: Get signed upload URL
       const urlResponse = await fetch(
         `/api/stages/${stage.id}/upload-url?fileName=${encodeURIComponent(file.name)}`,
         { credentials: "include" }
@@ -372,7 +320,6 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
       
       const { url } = await urlResponse.json();
       
-      // Step 2: Upload file directly to cloud storage
       const uploadResponse = await fetch(url, {
         method: "PUT",
         body: file,
@@ -385,8 +332,7 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
         throw new Error("Upload to storage failed");
       }
       
-      // Step 3: Record file metadata in database with checklist item key
-      const fileUrl = url.split("?")[0]; // Remove query params for clean URL
+      const fileUrl = url.split("?")[0];
       const recordResponse = await fetch(`/api/stages/${stage.id}/files`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -440,576 +386,440 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
     return user.email?.[0]?.toUpperCase() || "?";
   };
 
+  const formatDateRange = () => {
+    const start = stage.startDate ? new Date(stage.startDate) : null;
+    const end = stage.deadline ? new Date(stage.deadline) : null;
+    
+    const formatShort = (d: Date) => {
+      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    };
+    
+    if (start && end) {
+      return `${formatShort(start)} - ${formatShort(end)}`;
+    } else if (start) {
+      return formatShort(start);
+    } else if (end) {
+      return `- ${formatShort(end)}`;
+    }
+    return null;
+  };
+
+  const formatFullDate = (date: string | Date | null) => {
+    if (!date) return "-";
+    const d = typeof date === "string" ? new Date(date) : date;
+    return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  };
+
+  const getStageName = () => {
+    const lang = i18n.language.substring(0, 2);
+    const templateName = stage.template?.name || stage.name;
+    
+    if (lang === "ru") {
+      const ruNames: Record<string, string> = {
+        "Render": "Рендер",
+        "3D Model": "3D Модель",
+        "3D Print": "3D Печать",
+        "Technical Description": "Тех. описание",
+        "Factory Proposal": "Предложение завода",
+        "Tooling": "Оснастка",
+        "Sample": "Образец",
+        "Order Placement": "Размещение заказа",
+        "Documentation Checklist": "Чеклист документации",
+        "Packaging Checklist": "Чеклист упаковки",
+        "Certification": "Сертификация",
+        "First Shipment": "Первая отгрузка",
+        "Distribution Preparation": "Подготовка к дистрибуции",
+      };
+      const ruName = ruNames[templateName];
+      if (ruName) return `${ruName} (${templateName})`;
+    }
+    
+    if (lang === "zh") {
+      const zhNames: Record<string, string> = {
+        "Render": "渲染",
+        "3D Model": "3D模型",
+        "3D Print": "3D打印",
+        "Technical Description": "技术描述",
+        "Factory Proposal": "工厂报价",
+        "Tooling": "模具",
+        "Sample": "样品",
+        "Order Placement": "下单",
+        "Documentation Checklist": "文档清单",
+        "Packaging Checklist": "包装清单",
+        "Certification": "认证",
+        "First Shipment": "首批发货",
+        "Distribution Preparation": "分销准备",
+      };
+      const zhName = zhNames[templateName];
+      if (zhName) return `${zhName} (${templateName})`;
+    }
+    
+    return templateName;
+  };
+
+  const getStageDescription = () => {
+    const lang = i18n.language.substring(0, 2);
+    const templateName = stage.template?.name || stage.name;
+    
+    const descriptions: Record<string, Record<string, string>> = {
+      "Render": {
+        en: "Create product visualization. Attach images.",
+        ru: "Создание визуализации продукта. Прикрепите изображения.",
+        zh: "创建产品可视化。附加图像。",
+      },
+      "3D Model": {
+        en: "Technical model development. STEP format.",
+        ru: "Разработка технической модели. Формат STEP.",
+        zh: "技术模型开发。STEP格式。",
+      },
+      "3D Print": {
+        en: "Physical prototype from 3D model.",
+        ru: "Физический прототип из 3D модели.",
+        zh: "从3D模型制作物理原型。",
+      },
+      "Technical Description": {
+        en: "Complete technical specifications.",
+        ru: "Полное техническое описание.",
+        zh: "完整的技术规格。",
+      },
+      "Factory Proposal": {
+        en: "Factory quotation and terms.",
+        ru: "Предложение и условия завода.",
+        zh: "工厂报价和条款。",
+      },
+      "Tooling": {
+        en: "Mold and tooling preparation.",
+        ru: "Подготовка пресс-формы и оснастки.",
+        zh: "模具和工装准备。",
+      },
+      "Sample": {
+        en: "Production sample review.",
+        ru: "Проверка производственного образца.",
+        zh: "生产样品审核。",
+      },
+      "Order Placement": {
+        en: "Place production order.",
+        ru: "Размещение производственного заказа.",
+        zh: "下达生产订单。",
+      },
+      "Documentation Checklist": {
+        en: "Complete all required documentation.",
+        ru: "Заполните всю необходимую документацию.",
+        zh: "完成所有必需的文档。",
+      },
+      "Packaging Checklist": {
+        en: "Prepare packaging materials.",
+        ru: "Подготовьте упаковочные материалы.",
+        zh: "准备包装材料。",
+      },
+      "Certification": {
+        en: "Product certification process.",
+        ru: "Процесс сертификации продукта.",
+        zh: "产品认证流程。",
+      },
+      "First Shipment": {
+        en: "First batch shipping preparation.",
+        ru: "Подготовка первой партии к отгрузке.",
+        zh: "首批发货准备。",
+      },
+      "Distribution Preparation": {
+        en: "Prepare for distribution channels.",
+        ru: "Подготовка к каналам дистрибуции.",
+        zh: "准备分销渠道。",
+      },
+    };
+    
+    return descriptions[templateName]?.[lang] || descriptions[templateName]?.["en"] || "";
+  };
+
+  const dateRange = formatDateRange();
+  const stageFiles = (stage.files || []).filter(f => !f.checklistItemKey);
+
   return (
     <>
-      <div className="relative pl-14">
-        <div
-          className={`absolute left-0 top-6 h-14 w-14 rounded-full flex items-center justify-center z-10 ${
-            stage.status === "completed"
-              ? "bg-green-100 dark:bg-green-900/30"
-              : stage.status === "in_progress"
-              ? "bg-primary/10"
-              : "bg-muted"
-          }`}
-        >
-          <StatusIcon
-            className={`h-6 w-6 ${
-              stage.status === "completed"
-                ? "text-green-600 dark:text-green-400"
-                : stage.status === "in_progress"
-                ? "text-primary"
-                : "text-muted-foreground"
-            }`}
-          />
-        </div>
-
-        <Card
-          className={`transition-all ${
-            isOverdue ? "border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-950/20" : ""
-          }`}
-          data-testid={`card-stage-${stage.id}`}
-        >
-          <CardHeader className="pb-3">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <h3 className="text-lg font-semibold">{stage.name}</h3>
-                {isOverdue && (
-                  <Badge variant="destructive" className="text-xs">
-                    <AlertTriangle className="h-3 w-3 mr-1" />
-                    Overdue
-                  </Badge>
-                )}
-              </div>
-              <Select
-                value={stage.status || "waiting"}
-                onValueChange={(value) => updateStatusMutation.mutate(value)}
-              >
-                <SelectTrigger className="w-40" data-testid={`select-status-${stage.id}`}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="waiting">{t("stages.status.waiting")}</SelectItem>
-                  <SelectItem value="in_progress">{t("stages.status.in_progress")}</SelectItem>
-                  <SelectItem value="skip">{t("stages.status.skip")}</SelectItem>
-                  <SelectItem value="completed">{t("stages.status.completed")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap items-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">{t("stages.startDate")}:</span>
-                <span>
-                  {stage.startDate
-                    ? new Date(stage.startDate).toLocaleDateString()
-                    : t("stages.notSet")}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowStartDateModal(true)}
-                  className="h-6 px-2 text-xs"
-                  data-testid={`button-change-start-date-${stage.id}`}
-                >
-                  {t("stages.changeStartDate")}
-                </Button>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">{t("stages.deadline")}:</span>
-                <span className={isOverdue ? "text-red-600 dark:text-red-400 font-medium" : ""}>
-                  {stage.deadline
-                    ? new Date(stage.deadline).toLocaleDateString()
-                    : t("stages.notSet")}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowDeadlineModal(true)}
-                  className="h-6 px-2 text-xs"
-                  data-testid={`button-change-deadline-${stage.id}`}
-                >
-                  {t("stages.changeDeadline")}
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowTaskModal(true)}
-                data-testid={`button-assign-task-${stage.id}`}
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                {t("stages.assignTask")}
-              </Button>
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                  disabled={isUploading}
-                  data-testid={`input-file-${stage.id}`}
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={isUploading}
-                  asChild
-                  data-testid={`button-attach-file-${stage.id}`}
-                >
-                  <span>
-                    <Upload className="h-4 w-4 mr-2" />
-                    {isUploading ? t("common.loading") : t("stages.attachFile")}
-                  </span>
-                </Button>
-              </label>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowHistory(!showHistory)}
-                data-testid={`button-view-history-${stage.id}`}
-              >
-                <History className="h-4 w-4 mr-2" />
-                {t("stages.viewHistory")}
-              </Button>
-            </div>
-
-            {showHistory && (
-              <div className="space-y-4 p-4 rounded-lg bg-muted/30 border" data-testid={`history-section-${stage.id}`}>
-                <h4 className="text-sm font-medium flex items-center gap-2">
-                  <History className="h-4 w-4" />
-                  {t("stages.changeHistory")}
-                </h4>
+      <Card data-testid={`card-stage-${stage.id}`}>
+        <Collapsible open={isExpanded} onOpenChange={onToggle}>
+          <CollapsibleTrigger asChild>
+            <div className="p-4 cursor-pointer hover-elevate">
+              <div className="flex items-start gap-4">
+                <div className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-semibold ${
+                  isCompleted 
+                    ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400" 
+                    : "bg-primary/10 text-primary"
+                }`}>
+                  {position}
+                </div>
                 
-                {historyData?.statusHistory && historyData.statusHistory.length > 0 && (
-                  <div className="space-y-2">
-                    <h5 className="text-xs font-medium text-muted-foreground uppercase">{t("stages.statusChanges")}</h5>
-                    <div className="space-y-2">
-                      {historyData.statusHistory.map((record) => (
-                        <div key={record.id} className="flex items-start gap-3 text-sm p-2 rounded bg-background">
-                          <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <PlayCircle className="h-3 w-3 text-primary" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p>
-                              <span className="font-medium">
-                                {record.changedBy ? 
-                                  (record.changedBy.firstName && record.changedBy.lastName 
-                                    ? `${record.changedBy.firstName} ${record.changedBy.lastName}` 
-                                    : record.changedBy.email) 
-                                  : t("common.unknown")}
-                              </span>
-                              {" "}{t("stages.changedStatusFrom")}{" "}
-                              <Badge variant="outline" className="text-xs mx-1">
-                                {t(`stages.status.${record.oldStatus || "waiting"}`)}
-                              </Badge>
-                              {" "}{t("common.to")}{" "}
-                              <Badge variant="outline" className="text-xs mx-1">
-                                {t(`stages.status.${record.newStatus}`)}
-                              </Badge>
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {record.createdAt ? new Date(record.createdAt).toLocaleString() : ""}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-semibold">{getStageName()}</h3>
+                    {isCompleted && (
+                      <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    )}
                   </div>
-                )}
-
-                {historyData?.deadlineHistory && historyData.deadlineHistory.length > 0 && (
-                  <div className="space-y-2">
-                    <h5 className="text-xs font-medium text-muted-foreground uppercase">{t("stages.deadlineChanges")}</h5>
-                    <div className="space-y-2">
-                      {historyData.deadlineHistory.map((record) => (
-                        <div key={record.id} className="flex items-start gap-3 text-sm p-2 rounded bg-background">
-                          <div className="h-6 w-6 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <Calendar className="h-3 w-3 text-amber-600 dark:text-amber-400" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p>
-                              <span className="font-medium">
-                                {record.changedBy ? 
-                                  (record.changedBy.firstName && record.changedBy.lastName 
-                                    ? `${record.changedBy.firstName} ${record.changedBy.lastName}` 
-                                    : record.changedBy.email) 
-                                  : t("common.unknown")}
-                              </span>
-                              {" "}{t("stages.changedDeadlineFrom")}{" "}
-                              <span className="font-medium">
-                                {record.oldDeadline ? new Date(record.oldDeadline).toLocaleDateString() : t("stages.notSet")}
-                              </span>
-                              {" "}{t("common.to")}{" "}
-                              <span className="font-medium">
-                                {record.newDeadline ? new Date(record.newDeadline).toLocaleDateString() : t("stages.notSet")}
-                              </span>
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1 italic">
-                              {t("stages.reason")}: {record.reason}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {record.createdAt ? new Date(record.createdAt).toLocaleString() : ""}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  
+                  <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                    {dateRange && (
+                      <div className="flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5" />
+                        <span>{dateRange}</span>
+                      </div>
+                    )}
+                    {commentsCount > 0 && (
+                      <div className="flex items-center gap-1">
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        <span>{commentsCount}</span>
+                      </div>
+                    )}
+                    {filesCount > 0 && (
+                      <div className="flex items-center gap-1">
+                        <Paperclip className="h-3.5 w-3.5" />
+                        <span>{filesCount}</span>
+                      </div>
+                    )}
                   </div>
-                )}
-
-                {(!historyData?.statusHistory?.length && !historyData?.deadlineHistory?.length) && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    {t("stages.noHistory")}
-                  </p>
-                )}
+                </div>
+                
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <Select
+                    value={stage.status || "waiting"}
+                    onValueChange={(value) => {
+                      updateStatusMutation.mutate(value);
+                    }}
+                  >
+                    <SelectTrigger 
+                      className="w-32 h-8" 
+                      data-testid={`select-status-${stage.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="waiting">{t("stages.status.waiting")}</SelectItem>
+                      <SelectItem value="in_progress">{t("stages.status.in_progress")}</SelectItem>
+                      <SelectItem value="skip">{t("stages.status.skip")}</SelectItem>
+                      <SelectItem value="completed">{t("stages.status.completed")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  
+                  {isExpanded ? (
+                    <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                  )}
+                </div>
               </div>
-            )}
+            </div>
+          </CollapsibleTrigger>
+          
+          <CollapsibleContent>
+            <CardContent className="pt-0 space-y-6">
+              {getStageDescription() && (
+                <p className="text-muted-foreground italic">
+                  {getStageDescription()}
+                </p>
+              )}
+              
+              <Card className="bg-muted/30">
+                <CardContent className="p-4">
+                  <div className="flex gap-8">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                        {t("stages.startDate")}
+                      </p>
+                      <button
+                        onClick={() => setShowStartDateModal(true)}
+                        className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
+                        data-testid={`button-start-date-${stage.id}`}
+                      >
+                        <Calendar className="h-4 w-4" />
+                        {formatFullDate(stage.startDate)}
+                      </button>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
+                        {t("stages.deadline")}
+                      </p>
+                      <button
+                        onClick={() => setShowDeadlineModal(true)}
+                        className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
+                        data-testid={`button-deadline-${stage.id}`}
+                      >
+                        <Calendar className="h-4 w-4" />
+                        {formatFullDate(stage.deadline)}
+                      </button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-            {/* Checklist Section */}
-            {hasChecklist && (
-              <div className="space-y-3 p-4 rounded-lg bg-muted/30 border" data-testid={`checklist-section-${stage.id}`}>
-                <h4 className="text-sm font-medium flex items-center gap-2">
-                  <List className="h-4 w-4" />
-                  {t("stages.checklist")}
-                </h4>
-                <div className="space-y-3">
-                  {checklistItems.map((itemKey) => {
-                    const isCompleted = stage.checklistData?.[itemKey] || false;
-                    const itemFiles = getFilesForChecklistItem(itemKey);
-                    const isItemUploading = uploadingChecklistItem === itemKey;
-                    
-                    return (
-                      <div key={itemKey} className="flex flex-col gap-2 p-3 rounded-lg bg-background border">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
-                            <Checkbox
-                              id={`checklist-${stage.id}-${itemKey}`}
-                              checked={isCompleted}
-                              onCheckedChange={() => handleChecklistItemToggle(itemKey, isCompleted)}
-                              data-testid={`checkbox-${stage.id}-${itemKey}`}
-                            />
-                            <label
-                              htmlFor={`checklist-${stage.id}-${itemKey}`}
-                              className={`text-sm cursor-pointer flex-1 ${isCompleted ? "line-through text-muted-foreground" : ""}`}
-                            >
-                              {getChecklistItemLabel(itemKey)}
-                            </label>
-                          </div>
-                          <label className="cursor-pointer flex-shrink-0">
+              {hasChecklist && (
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium uppercase text-muted-foreground">
+                    {t("stages.checklist")}
+                  </h4>
+                  <div className="space-y-2">
+                    {checklistItems.map((itemKey: string) => {
+                      const isChecked = (stage.checklistData as Record<string, boolean>)?.[itemKey] || false;
+                      const itemFiles = getFilesForChecklistItem(itemKey);
+                      
+                      return (
+                        <div key={itemKey} className="flex items-center gap-3 p-2 rounded hover:bg-muted/50">
+                          <Checkbox
+                            checked={isChecked}
+                            onCheckedChange={() => handleChecklistItemToggle(itemKey, isChecked)}
+                            data-testid={`checkbox-${stage.id}-${itemKey}`}
+                          />
+                          <span className={`flex-1 ${isChecked ? "line-through text-muted-foreground" : ""}`}>
+                            {getChecklistItemLabel(itemKey)}
+                          </span>
+                          {itemFiles.length > 0 && (
+                            <div className="flex items-center gap-1">
+                              {itemFiles.slice(0, 3).map((f) => (
+                                <a
+                                  key={f.id}
+                                  href={f.fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1 hover:bg-muted rounded"
+                                >
+                                  {getFilePreviewIcon(f)}
+                                </a>
+                              ))}
+                              {itemFiles.length > 3 && (
+                                <span className="text-xs text-muted-foreground">+{itemFiles.length - 3}</span>
+                              )}
+                            </div>
+                          )}
+                          <label className="cursor-pointer">
                             <input
                               type="file"
                               className="hidden"
                               accept={getAcceptedFileTypes(stage.name, itemKey)}
                               onChange={(e) => handleFileUpload(e, itemKey)}
-                              disabled={isItemUploading}
-                              data-testid={`input-file-${stage.id}-${itemKey}`}
+                              disabled={uploadingChecklistItem === itemKey}
                             />
                             <Button
                               variant="ghost"
                               size="sm"
-                              disabled={isItemUploading}
+                              className="h-7 px-2"
+                              disabled={uploadingChecklistItem === itemKey}
                               asChild
-                              data-testid={`button-attach-${stage.id}-${itemKey}`}
                             >
-                              <span className="flex items-center gap-1">
-                                {isItemUploading ? (
-                                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                ) : (
-                                  <Upload className="h-4 w-4" />
-                                )}
-                                {itemFiles.length > 0 && (
-                                  <Badge variant="secondary" className="text-xs px-1.5">
-                                    {itemFiles.length}
-                                  </Badge>
-                                )}
+                              <span>
+                                <Paperclip className="h-3.5 w-3.5" />
                               </span>
                             </Button>
                           </label>
                         </div>
-                        
-                        {itemFiles.length > 0 && (
-                          <div className="ml-7 space-y-1">
-                            {itemFiles.map((file) => (
-                              <div
-                                key={file.id}
-                                className="flex items-center gap-2 text-xs text-muted-foreground"
-                                data-testid={`file-${stage.id}-${itemKey}-${file.id}`}
-                              >
-                                {isImageFile(file) ? (
-                                  <img 
-                                    src={file.fileUrl} 
-                                    alt={file.fileName}
-                                    className="h-8 w-8 object-cover rounded flex-shrink-0"
-                                  />
-                                ) : (
-                                  getFilePreviewIcon(file)
-                                )}
-                                <span className="truncate flex-1">{file.fileName}</span>
-                                {file.isLatest && (
-                                  <Badge variant="outline" className="text-xs px-1">
-                                    v{file.version}
-                                  </Badge>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Conditional Certification Stage */}
-            {hasConditionalSubstages && (
-              <div className="space-y-3 p-4 rounded-lg bg-muted/30 border" data-testid={`conditional-section-${stage.id}`}>
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-medium">{t("stages.templates.certification")}</h4>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      {stage.conditionalEnabled ? t("common.yes") : t("common.no")}
-                    </span>
-                    <Switch
-                      checked={stage.conditionalEnabled || false}
-                      onCheckedChange={handleConditionalToggle}
-                      data-testid={`switch-certification-${stage.id}`}
-                    />
-                  </div>
-                </div>
-                
-                {stage.conditionalEnabled && (
-                  <div className="space-y-3">
-                    {conditionalSubstages.map((itemKey) => {
-                      const isCompleted = stage.conditionalSubstagesData?.[itemKey] || false;
-                      const itemFiles = getFilesForChecklistItem(itemKey);
-                      const isItemUploading = uploadingChecklistItem === itemKey;
-                      
-                      return (
-                        <div key={itemKey} className="flex flex-col gap-2 p-3 rounded-lg bg-background border">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                              <Checkbox
-                                id={`substage-${stage.id}-${itemKey}`}
-                                checked={isCompleted}
-                                onCheckedChange={() => handleConditionalSubstageToggle(itemKey, isCompleted)}
-                                data-testid={`checkbox-substage-${stage.id}-${itemKey}`}
-                              />
-                              <label
-                                htmlFor={`substage-${stage.id}-${itemKey}`}
-                                className={`text-sm cursor-pointer flex-1 ${isCompleted ? "line-through text-muted-foreground" : ""}`}
-                              >
-                                {getChecklistItemLabel(itemKey)}
-                              </label>
-                            </div>
-                            <label className="cursor-pointer flex-shrink-0">
-                              <input
-                                type="file"
-                                className="hidden"
-                                onChange={(e) => handleFileUpload(e, itemKey)}
-                                disabled={isItemUploading}
-                                data-testid={`input-file-substage-${stage.id}-${itemKey}`}
-                              />
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                disabled={isItemUploading}
-                                asChild
-                                data-testid={`button-attach-substage-${stage.id}-${itemKey}`}
-                              >
-                                <span className="flex items-center gap-1">
-                                  {isItemUploading ? (
-                                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                                  ) : (
-                                    <Upload className="h-4 w-4" />
-                                  )}
-                                  {itemFiles.length > 0 && (
-                                    <Badge variant="secondary" className="text-xs px-1.5">
-                                      {itemFiles.length}
-                                    </Badge>
-                                  )}
-                                </span>
-                              </Button>
-                            </label>
-                          </div>
-                          
-                          {itemFiles.length > 0 && (
-                            <div className="ml-7 space-y-1">
-                              {itemFiles.map((file) => (
-                                <div
-                                  key={file.id}
-                                  className="flex items-center gap-2 text-xs text-muted-foreground"
-                                  data-testid={`file-substage-${stage.id}-${itemKey}-${file.id}`}
-                                >
-                                  {getFilePreviewIcon(file)}
-                                  <span className="truncate flex-1">{file.fileName}</span>
-                                  {file.isLatest && (
-                                    <Badge variant="outline" className="text-xs px-1">
-                                      v{file.version}
-                                    </Badge>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
                       );
                     })}
                   </div>
-                )}
-              </div>
-            )}
+                </div>
+              )}
 
-            {/* Custom Text Fields Section */}
-            {hasCustomFields && (
-              <div className="space-y-3 p-4 rounded-lg bg-muted/30 border" data-testid={`custom-fields-section-${stage.id}`}>
-                <h4 className="text-sm font-medium flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  {t("stages.customFields")}
-                </h4>
-                <div className="space-y-4">
-                  {customFields
-                    .sort((a, b) => a.position - b.position)
-                    .map((field) => (
-                      <div key={field.key} className="space-y-2">
-                        <label htmlFor={`field-${stage.id}-${field.key}`} className="text-sm font-medium">
+              {hasConditionalSubstages && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <Switch
+                      checked={stage.conditionalEnabled !== false}
+                      onCheckedChange={handleConditionalToggle}
+                    />
+                    <span className="text-sm font-medium">
+                      {t("stages.templates.certification")}
+                    </span>
+                  </div>
+                  {stage.conditionalEnabled !== false && (
+                    <div className="pl-6 space-y-2">
+                      {conditionalSubstages.map((itemKey: string) => {
+                        const isChecked = (stage.conditionalSubstagesData as Record<string, boolean>)?.[itemKey] || false;
+                        return (
+                          <div key={itemKey} className="flex items-center gap-3 p-2 rounded hover:bg-muted/50">
+                            <Checkbox
+                              checked={isChecked}
+                              onCheckedChange={() => handleConditionalSubstageToggle(itemKey, isChecked)}
+                            />
+                            <span className={isChecked ? "line-through text-muted-foreground" : ""}>
+                              {getChecklistItemLabel(itemKey)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {customFields.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium uppercase text-muted-foreground">
+                    {t("stages.customFields")}
+                  </h4>
+                  <div className="grid gap-3">
+                    {customFields.map((field) => (
+                      <div key={field.key}>
+                        <label className="text-sm text-muted-foreground mb-1 block">
                           {getCustomFieldLabel(field)}
-                          {field.required && <span className="text-red-500 ml-1">*</span>}
                         </label>
                         {field.type === "textarea" ? (
                           <Textarea
-                            id={`field-${stage.id}-${field.key}`}
                             value={customFieldValues[field.key] || ""}
                             onChange={(e) => handleCustomFieldChange(field.key, e.target.value)}
                             onBlur={() => handleCustomFieldBlur(field.key)}
-                            placeholder={getCustomFieldLabel(field)}
-                            className="min-h-24"
-                            data-testid={`textarea-${stage.id}-${field.key}`}
+                            className="min-h-[80px]"
                           />
                         ) : (
                           <Input
-                            id={`field-${stage.id}-${field.key}`}
                             type={field.type === "number" ? "number" : "text"}
                             value={customFieldValues[field.key] || ""}
                             onChange={(e) => handleCustomFieldChange(field.key, e.target.value)}
                             onBlur={() => handleCustomFieldBlur(field.key)}
-                            placeholder={getCustomFieldLabel(field)}
-                            data-testid={`input-${stage.id}-${field.key}`}
                           />
                         )}
                       </div>
                     ))}
-                </div>
-              </div>
-            )}
-
-            <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-              <CollapsibleTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-between"
-                  data-testid={`button-expand-stage-${stage.id}`}
-                >
-                  <span className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Paperclip className="h-4 w-4" />
-                      {stage.files?.length || 0} {t("stages.files")}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MessageSquare className="h-4 w-4" />
-                      {stage.comments?.length || 0} {t("stages.comments")}
-                    </span>
-                  </span>
-                  {isExpanded ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </Button>
-              </CollapsibleTrigger>
-
-              <CollapsibleContent className="space-y-4 pt-4">
-                <Separator />
-
-                {stage.files && stage.files.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium">{t("stages.files")}</h4>
-                    <div className="space-y-2">
-                      {stage.files.map((file) => (
-                        <div
-                          key={file.id}
-                          className="flex items-center gap-3 p-2 rounded-lg bg-muted/50"
-                          data-testid={`file-${file.id}`}
-                        >
-                          {isImageFile(file) ? (
-                            <img 
-                              src={file.fileUrl} 
-                              alt={file.fileName}
-                              className="h-10 w-10 object-cover rounded flex-shrink-0"
-                            />
-                          ) : (
-                            getFilePreviewIcon(file)
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{file.fileName}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {t("files.uploaded")} {file.createdAt ? new Date(file.createdAt).toLocaleDateString() : ""}
-                            </p>
-                          </div>
-                          <Badge variant="outline" className="text-xs">
-                            v{file.version}
-                          </Badge>
-                        </div>
-                      ))}
-                    </div>
                   </div>
-                )}
+                </div>
+              )}
 
+              <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-3">
-                  <h4 className="text-sm font-medium">{t("stages.comments")}</h4>
+                  <h4 className="text-sm font-medium uppercase text-muted-foreground">
+                    {t("stages.comments")}
+                  </h4>
+                  
                   {stage.comments && stage.comments.length > 0 ? (
                     <div className="space-y-3">
                       {stage.comments.map((comment) => (
-                        <div key={comment.id} className="flex gap-3" data-testid={`comment-${comment.id}`}>
+                        <div key={comment.id} className="flex gap-3">
                           <Avatar className="h-8 w-8 flex-shrink-0">
-                            <AvatarImage
-                              src={comment.user?.profileImageUrl || undefined}
-                              className="object-cover"
-                            />
+                            <AvatarImage src={comment.user?.profileImageUrl || undefined} />
                             <AvatarFallback className="text-xs">
                               {getUserInitials(comment.userId)}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="flex-1 space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">
-                                {getUserName(comment.userId) || "Unknown"}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {comment.createdAt
-                                  ? new Date(comment.createdAt).toLocaleString()
-                                  : ""}
-                              </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="bg-muted rounded-lg p-3">
+                              <p className="text-sm">{comment.content}</p>
                             </div>
-                            <p className="text-sm">{comment.content}</p>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                              <span>{getUserName(comment.userId) || "Unknown"}</span>
+                              <span>·</span>
+                              <span>{comment.createdAt ? new Date(comment.createdAt).toLocaleDateString() : ""}</span>
+                            </div>
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-muted-foreground">{t("comments.noComments")}</p>
+                    <p className="text-sm text-muted-foreground italic">
+                      {t("comments.noComments")}
+                    </p>
                   )}
-
+                  
                   <div className="flex gap-2">
                     <Input
-                      placeholder={t("comments.placeholder")}
+                      placeholder={t("stages.addComment") || "Add a comment..."}
                       value={newComment}
                       onChange={(e) => setNewComment(e.target.value)}
                       onKeyDown={(e) => {
@@ -1029,73 +839,146 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
                     </Button>
                   </div>
                 </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </CardContent>
-        </Card>
-      </div>
 
-      <Dialog open={showDeadlineModal} onOpenChange={setShowDeadlineModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("stages.changeDeadline")}</DialogTitle>
-            <DialogDescription>
-              Please provide a reason for changing the deadline.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("stages.deadline")}</label>
-              <Input
-                type="date"
-                value={newDeadline}
-                onChange={(e) => setNewDeadline(e.target.value)}
-                data-testid="input-new-deadline"
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("stages.deadlineReason")} *</label>
-              <Textarea
-                value={deadlineReason}
-                onChange={(e) => setDeadlineReason(e.target.value)}
-                placeholder="Enter reason for deadline change..."
-                data-testid="input-deadline-reason"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeadlineModal(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              onClick={() => updateDeadlineMutation.mutate()}
-              disabled={!deadlineReason.trim() || updateDeadlineMutation.isPending}
-              data-testid="button-save-deadline"
-            >
-              {t("common.save")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium uppercase text-muted-foreground">
+                    {t("stages.files")}
+                  </h4>
+                  
+                  {stageFiles.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-2">
+                      {stageFiles.map((file) => (
+                        <a
+                          key={file.id}
+                          href={file.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                          data-testid={`link-file-${file.id}`}
+                        >
+                          {getFilePreviewIcon(file)}
+                          <span className="text-sm truncate flex-1">{file.fileName}</span>
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">
+                      {t("files.noFiles")}
+                    </p>
+                  )}
+                  
+                  <label className="cursor-pointer inline-flex items-center gap-2 text-sm text-primary hover:underline">
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept={getAcceptedFileTypes(stage.name)}
+                      onChange={(e) => handleFileUpload(e)}
+                      disabled={isUploading}
+                      data-testid={`input-file-upload-${stage.id}`}
+                    />
+                    <Paperclip className="h-4 w-4" />
+                    {isUploading ? t("common.loading") : (t("stages.clickToUpload") || "Click to upload file")}
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowTaskModal(true)}
+                  data-testid={`button-assign-task-${stage.id}`}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  {t("stages.assignTask")}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowHistory(!showHistory)}
+                  data-testid={`button-history-${stage.id}`}
+                >
+                  <History className="h-4 w-4 mr-2" />
+                  {t("stages.viewHistory")}
+                </Button>
+              </div>
+
+              {showHistory && historyData && (
+                <div className="p-4 rounded-lg bg-muted/30 border space-y-4">
+                  <h4 className="text-sm font-medium flex items-center gap-2">
+                    <History className="h-4 w-4" />
+                    {t("stages.changeHistory")}
+                  </h4>
+                  
+                  {historyData.statusHistory && historyData.statusHistory.length > 0 && (
+                    <div className="space-y-2">
+                      <h5 className="text-xs font-medium text-muted-foreground uppercase">
+                        {t("stages.statusChanges")}
+                      </h5>
+                      {historyData.statusHistory.map((record) => (
+                        <div key={record.id} className="flex items-center gap-2 text-sm">
+                          <PlayCircle className="h-4 w-4 text-primary" />
+                          <span>
+                            {record.changedBy?.firstName || record.changedBy?.email || "Unknown"}{" "}
+                            {t("stages.changedStatusFrom")}{" "}
+                            <strong>{t(`stages.status.${record.oldStatus || "waiting"}`)}</strong>{" "}
+                            {t("common.to")}{" "}
+                            <strong>{t(`stages.status.${record.newStatus}`)}</strong>
+                          </span>
+                          <span className="text-muted-foreground ml-auto">
+                            {new Date(record.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {historyData.deadlineHistory && historyData.deadlineHistory.length > 0 && (
+                    <div className="space-y-2">
+                      <h5 className="text-xs font-medium text-muted-foreground uppercase">
+                        {t("stages.deadlineChanges")}
+                      </h5>
+                      {historyData.deadlineHistory.map((record) => (
+                        <div key={record.id} className="flex items-center gap-2 text-sm">
+                          <Clock className="h-4 w-4 text-orange-500" />
+                          <span>
+                            {record.changedBy?.firstName || record.changedBy?.email || "Unknown"}{" "}
+                            {t("stages.changedDeadlineFrom")}{" "}
+                            <strong>{record.oldDeadline ? new Date(record.oldDeadline).toLocaleDateString() : t("stages.notSet")}</strong>{" "}
+                            {t("common.to")}{" "}
+                            <strong>{record.newDeadline ? new Date(record.newDeadline).toLocaleDateString() : t("stages.notSet")}</strong>
+                          </span>
+                          <span className="text-muted-foreground ml-auto">
+                            {new Date(record.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {(!historyData.statusHistory?.length && !historyData.deadlineHistory?.length) && (
+                    <p className="text-sm text-muted-foreground">{t("stages.noHistory")}</p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
+      </Card>
 
       <Dialog open={showStartDateModal} onOpenChange={setShowStartDateModal}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("stages.changeStartDate")}</DialogTitle>
-            <DialogDescription>
-              {t("stages.setStartDateDescription")}
-            </DialogDescription>
+            <DialogDescription>{t("stages.setStartDateDescription")}</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("stages.startDate")}</label>
-              <Input
-                type="date"
-                value={newStartDate}
-                onChange={(e) => setNewStartDate(e.target.value)}
-                data-testid="input-new-start-date"
-              />
-            </div>
+          <div className="space-y-4">
+            <Input
+              type="date"
+              value={newStartDate}
+              onChange={(e) => setNewStartDate(e.target.value)}
+              data-testid="input-new-start-date"
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowStartDateModal(false)}>
@@ -1104,7 +987,38 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
             <Button
               onClick={() => updateStartDateMutation.mutate()}
               disabled={updateStartDateMutation.isPending}
-              data-testid="button-save-start-date"
+            >
+              {t("common.save")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDeadlineModal} onOpenChange={setShowDeadlineModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("stages.changeDeadline")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              type="date"
+              value={newDeadline}
+              onChange={(e) => setNewDeadline(e.target.value)}
+              data-testid="input-new-deadline"
+            />
+            <Textarea
+              placeholder={t("stages.deadlineReason")}
+              value={deadlineReason}
+              onChange={(e) => setDeadlineReason(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeadlineModal(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={() => updateDeadlineMutation.mutate()}
+              disabled={updateDeadlineMutation.isPending || !newDeadline}
             >
               {t("common.save")}
             </Button>
@@ -1116,37 +1030,27 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("stages.assignTask")}</DialogTitle>
-            <DialogDescription>
-              Assign a task to a team member for this stage.
-            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("tasks.assignTo")} *</label>
-              <Select value={taskAssignee} onValueChange={setTaskAssignee}>
-                <SelectTrigger data-testid="select-task-assignee">
-                  <SelectValue placeholder="Select team member" />
-                </SelectTrigger>
-                <SelectContent>
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.firstName && user.lastName
-                        ? `${user.firstName} ${user.lastName}`
-                        : user.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("tasks.taskDescription")} *</label>
-              <Textarea
-                value={taskDescription}
-                onChange={(e) => setTaskDescription(e.target.value)}
-                placeholder="Describe the task..."
-                data-testid="input-task-description"
-              />
-            </div>
+          <div className="space-y-4">
+            <Textarea
+              placeholder={t("tasks.taskDescription")}
+              value={taskDescription}
+              onChange={(e) => setTaskDescription(e.target.value)}
+            />
+            <Select value={taskAssignee} onValueChange={setTaskAssignee}>
+              <SelectTrigger>
+                <SelectValue placeholder={t("tasks.assignTo")} />
+              </SelectTrigger>
+              <SelectContent>
+                {users.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.firstName && user.lastName
+                      ? `${user.firstName} ${user.lastName}`
+                      : user.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowTaskModal(false)}>
@@ -1154,10 +1058,7 @@ export function StageCard({ stage, projectId, users, isLast }: StageCardProps) {
             </Button>
             <Button
               onClick={() => createTaskMutation.mutate()}
-              disabled={
-                !taskAssignee || !taskDescription.trim() || createTaskMutation.isPending
-              }
-              data-testid="button-assign-task"
+              disabled={createTaskMutation.isPending || !taskDescription || !taskAssignee}
             >
               {t("stages.assignTask")}
             </Button>
