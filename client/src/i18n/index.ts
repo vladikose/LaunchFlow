@@ -165,6 +165,8 @@ const resources = {
         checklistItems: {
           explosionDiagram: "Explosion Diagram",
           productDrawing: "Product Drawing",
+          explodedView: "Exploded View Diagram",
+          installationFile: "Installation File",
           boxDrawing: "Box Drawing",
           box: "Box",
           instruction: "Instruction",
@@ -530,6 +532,8 @@ const resources = {
         checklistItems: {
           explosionDiagram: "Взрыв-схема",
           productDrawing: "Чертеж продукта",
+          explodedView: "Взрыв-схема продукта",
+          installationFile: "Установочный файл",
           boxDrawing: "Чертеж коробки",
           box: "Коробка",
           instruction: "Инструкция",
@@ -895,6 +899,8 @@ const resources = {
         checklistItems: {
           explosionDiagram: "爆炸图",
           productDrawing: "产品图纸",
+          explodedView: "爆炸图",
+          installationFile: "安装文件",
           boxDrawing: "包装盒图纸",
           box: "包装盒",
           instruction: "说明书",

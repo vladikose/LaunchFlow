@@ -130,6 +130,40 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
       firstShipmentDefaults.forEach(item => configMap.set(item.key, item));
     }
     
+    if (configMap.size === 0 && stage.template?.name === 'Documentation Checklist') {
+      const documentationDefaults: ChecklistItemConfig[] = [
+        { 
+          key: 'productDrawing', 
+          label: 'Product Drawing', 
+          labelRu: 'Чертеж продукта', 
+          labelZh: '产品图纸',
+          acceptedFileTypes: ['image/*', 'application/pdf', '.dwg', '.dxf']
+        },
+        { 
+          key: 'explodedView', 
+          label: 'Exploded View Diagram', 
+          labelRu: 'Взрыв-схема продукта', 
+          labelZh: '爆炸图',
+          acceptedFileTypes: ['image/*', 'application/pdf', '.dwg', '.dxf']
+        },
+        { 
+          key: 'installationFile', 
+          label: 'Installation File', 
+          labelRu: 'Установочный файл', 
+          labelZh: '安装文件',
+          acceptedFileTypes: ['image/*', 'application/pdf', '.doc', '.docx']
+        },
+        { 
+          key: 'boxDrawing', 
+          label: 'Box Drawing', 
+          labelRu: 'Чертеж коробки', 
+          labelZh: '包装盒图纸',
+          acceptedFileTypes: ['image/*', 'application/pdf', '.dwg', '.dxf']
+        }
+      ];
+      documentationDefaults.forEach(item => configMap.set(item.key, item));
+    }
+    
     return configMap;
   };
 
@@ -1150,7 +1184,7 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
             </Button>
             <Button
               onClick={() => updateDeadlineMutation.mutate()}
-              disabled={updateDeadlineMutation.isPending || !newDeadline || (stage.deadline && !deadlineReason.trim())}
+              disabled={updateDeadlineMutation.isPending || !newDeadline || (!!stage.deadline && !deadlineReason.trim())}
             >
               {t("common.save")}
             </Button>
