@@ -154,11 +154,12 @@ export default function Projects() {
         <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
             <Card key={i}>
-              <CardContent className="p-3">
-                <Skeleton className="h-32 w-full rounded-lg mb-3" />
-                <Skeleton className="h-4 w-3/4 mb-2" />
-                <Skeleton className="h-1.5 w-full mb-3" />
-                <div className="flex justify-end">
+              <CardContent className="p-0 flex">
+                <Skeleton className="w-24 h-24 rounded-l-xl flex-shrink-0" />
+                <div className="flex-1 p-3 space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-1.5 w-full" />
+                  <Skeleton className="h-3 w-20" />
                   <Skeleton className="h-3 w-24" />
                 </div>
               </CardContent>
@@ -174,13 +175,13 @@ export default function Projects() {
             return (
               <Link key={project.id} href={`/projects/${project.id}`}>
                 <Card
-                  className={`hover-elevate cursor-pointer transition-all h-full ${
+                  className={`hover-elevate cursor-pointer transition-all ${
                     overdue ? "border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-950/20" : ""
                   }`}
                   data-testid={`card-project-${project.id}`}
                 >
-                  <CardContent className="p-3 flex flex-col h-full">
-                    <div className="h-32 w-full rounded-lg bg-muted flex items-center justify-center overflow-hidden mb-3">
+                  <CardContent className="p-0 flex">
+                    <div className="w-24 flex-shrink-0 bg-muted flex items-center justify-center overflow-hidden rounded-l-xl">
                       {imageSrc ? (
                         <img
                           src={imageSrc}
@@ -188,36 +189,38 @@ export default function Projects() {
                           className="h-full w-full object-contain"
                         />
                       ) : (
-                        <ImageIcon className="h-10 w-10 text-muted-foreground" />
+                        <ImageIcon className="h-8 w-8 text-muted-foreground" />
                       )}
                     </div>
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <h3 className="font-semibold text-sm truncate flex-1">{project.name}</h3>
-                      {overdue && (
-                        <Badge variant="destructive" className="flex-shrink-0 text-xs px-1.5 py-0.5">
-                          <AlertTriangle className="h-3 w-3" />
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <Progress value={progress} className="h-1.5 flex-1" />
-                      <span className="text-xs text-muted-foreground">{progress}%</span>
-                    </div>
-                    <div className="flex items-center justify-end gap-2 text-xs text-muted-foreground mt-auto">
-                      {project.responsibleUserName && (
-                        <div className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          <span className="truncate max-w-[80px]">
-                            {project.responsibleUserName}
-                          </span>
-                        </div>
-                      )}
-                      {project.deadline && (
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          <span>{new Date(project.deadline).toLocaleDateString()}</span>
-                        </div>
-                      )}
+                    <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
+                      <div className="flex items-start justify-between gap-1 mb-1">
+                        <h3 className="font-semibold text-sm truncate flex-1">{project.name}</h3>
+                        {overdue && (
+                          <Badge variant="destructive" className="flex-shrink-0 text-xs px-1 py-0">
+                            <AlertTriangle className="h-3 w-3" />
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Progress value={progress} className="h-1.5 flex-1" />
+                        <span className="text-xs text-muted-foreground">{progress}%</span>
+                      </div>
+                      <div className="space-y-0.5 text-xs text-muted-foreground">
+                        {project.deadline && (
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3 flex-shrink-0" />
+                            <span>{new Date(project.deadline).toLocaleDateString()}</span>
+                          </div>
+                        )}
+                        {project.responsibleUserName && (
+                          <div className="flex items-center gap-1">
+                            <User className="h-3 w-3 flex-shrink-0" />
+                            <span className="truncate">
+                              {project.responsibleUserName}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
