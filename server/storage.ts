@@ -553,9 +553,9 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Calculate average stage duration from completed stages with start and deadline dates
+    // Calculate average project completion time (from first stage start to last stage completion)
     let totalDuration = 0;
-    let completedStagesCount = 0;
+    let completedProjectsWithDates = 0;
 
     for (const project of allProjects) {
       const projectStages = await db
@@ -563,22 +563,43 @@ export class DatabaseStorage implements IStorage {
         .from(stages)
         .where(eq(stages.projectId, project.id));
 
-      for (const stage of projectStages) {
-        // Only count completed stages that have both startDate and deadline
-        if (stage.status === "completed" && stage.startDate && stage.deadline) {
-          const start = new Date(stage.startDate);
-          const end = new Date(stage.deadline);
-          const duration = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+      // Check if all stages are completed
+      const allCompleted = projectStages.length > 0 && projectStages.every(
+        (s) => s.status === "completed" || s.status === "skip"
+      );
+
+      if (allCompleted) {
+        // Find earliest start date and latest deadline
+        let earliestStart: Date | null = null;
+        let latestEnd: Date | null = null;
+
+        for (const stage of projectStages) {
+          if (stage.startDate) {
+            const startDate = new Date(stage.startDate);
+            if (!earliestStart || startDate < earliestStart) {
+              earliestStart = startDate;
+            }
+          }
+          if (stage.deadline) {
+            const endDate = new Date(stage.deadline);
+            if (!latestEnd || endDate > latestEnd) {
+              latestEnd = endDate;
+            }
+          }
+        }
+
+        if (earliestStart && latestEnd) {
+          const duration = (latestEnd.getTime() - earliestStart.getTime()) / (1000 * 60 * 60 * 24);
           if (duration > 0) {
             totalDuration += duration;
-            completedStagesCount++;
+            completedProjectsWithDates++;
           }
         }
       }
     }
 
     const avgStageDuration =
-      completedStagesCount > 0 ? Math.round(totalDuration / completedStagesCount) : 0;
+      completedProjectsWithDates > 0 ? Math.round(totalDuration / completedProjectsWithDates) : 0;
 
     return {
       completedProjects,
