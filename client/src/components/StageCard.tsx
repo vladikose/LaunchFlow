@@ -997,7 +997,9 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
       <Dialog open={showDeadlineModal} onOpenChange={setShowDeadlineModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("stages.changeDeadline")}</DialogTitle>
+            <DialogTitle>
+              {stage.deadline ? t("stages.changeDeadline") : t("stages.setDeadline")}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <Input
@@ -1006,11 +1008,13 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
               onChange={(e) => setNewDeadline(e.target.value)}
               data-testid="input-new-deadline"
             />
-            <Textarea
-              placeholder={t("stages.deadlineReason")}
-              value={deadlineReason}
-              onChange={(e) => setDeadlineReason(e.target.value)}
-            />
+            {stage.deadline && (
+              <Textarea
+                placeholder={t("stages.deadlineReason")}
+                value={deadlineReason}
+                onChange={(e) => setDeadlineReason(e.target.value)}
+              />
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeadlineModal(false)}>
@@ -1018,7 +1022,7 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
             </Button>
             <Button
               onClick={() => updateDeadlineMutation.mutate()}
-              disabled={updateDeadlineMutation.isPending || !newDeadline}
+              disabled={updateDeadlineMutation.isPending || !newDeadline || (stage.deadline && !deadlineReason.trim())}
             >
               {t("common.save")}
             </Button>
