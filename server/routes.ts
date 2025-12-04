@@ -1066,6 +1066,36 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/stages/:stageId/files/:fileId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const stage = await storage.getStageById(req.params.stageId);
+      if (!stage) {
+        return res.status(404).json({ message: "Stage not found" });
+      }
+      
+      const project = await storage.getProjectById(stage.projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      const user = await storage.getUser(authUser.id);
+      if (!user || user.companyId !== project.companyId) {
+        return res.status(403).json({ message: "Access denied to this stage" });
+      }
+      
+      await storage.deleteStageFile(req.params.fileId);
+      res.status(200).json({ message: "File deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting stage file:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.get("/api/objects/upload-url", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const url = await objectStorageService.getObjectEntityUploadURL();

@@ -48,6 +48,7 @@ import {
   History,
   PlayCircle,
   Clock,
+  Trash2,
 } from "lucide-react";
 import type { StageWithRelations, User, StageFile, CustomField, DistributionData, TemplateBlock, ChecklistBlockConfig, ChecklistItemConfig } from "@shared/schema";
 import { DistributionPrepBlock } from "./DistributionPrepBlock";
@@ -273,6 +274,19 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
     },
     onError: () => {
       toast({ title: t("stages.commentFailed"), variant: "destructive" });
+    },
+  });
+
+  const deleteFileMutation = useMutation({
+    mutationFn: async (fileId: string) => {
+      return apiRequest("DELETE", `/api/stages/${stage.id}/files/${fileId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      toast({ title: t("stages.fileDeleted") || "File deleted" });
+    },
+    onError: () => {
+      toast({ title: t("stages.fileDeleteFailed") || "Failed to delete file", variant: "destructive" });
     },
   });
 
@@ -816,15 +830,26 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
                             {itemFiles.length > 0 && (
                               <div className="flex items-center gap-1">
                                 {itemFiles.slice(0, 3).map((f) => (
-                                  <a
-                                    key={f.id}
-                                    href={f.fileUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="p-1 hover:bg-muted rounded"
-                                  >
-                                    {getFilePreviewIcon(f)}
-                                  </a>
+                                  <div key={f.id} className="flex items-center group/file">
+                                    <a
+                                      href={f.fileUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="p-1 hover:bg-muted rounded"
+                                    >
+                                      {getFilePreviewIcon(f)}
+                                    </a>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteFileMutation.mutate(f.id);
+                                      }}
+                                      className="p-0.5 opacity-0 group-hover/file:opacity-100 text-destructive hover:bg-destructive/10 rounded transition-opacity"
+                                      disabled={deleteFileMutation.isPending}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </div>
                                 ))}
                                 {itemFiles.length > 3 && (
                                   <span className="text-xs text-muted-foreground">+{itemFiles.length - 3}</span>
@@ -1010,17 +1035,34 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
                   {stageFiles.length > 0 ? (
                     <div className="grid grid-cols-2 gap-2">
                       {stageFiles.map((file) => (
-                        <a
+                        <div
                           key={file.id}
-                          href={file.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                          data-testid={`link-file-${file.id}`}
+                          className="flex items-center gap-2 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors group"
                         >
-                          {getFilePreviewIcon(file)}
-                          <span className="text-sm truncate flex-1">{file.fileName}</span>
-                        </a>
+                          <a
+                            href={file.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 flex-1 min-w-0"
+                            data-testid={`link-file-${file.id}`}
+                          >
+                            {getFilePreviewIcon(file)}
+                            <span className="text-sm truncate">{file.fileName}</span>
+                          </a>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteFileMutation.mutate(file.id);
+                            }}
+                            disabled={deleteFileMutation.isPending}
+                            data-testid={`button-delete-file-${file.id}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       ))}
                     </div>
                   ) : (
