@@ -30,6 +30,7 @@ import {
   Settings,
   Users,
   Layers,
+  Building2,
   Rocket,
   LogOut,
   ChevronUp,
@@ -59,6 +60,11 @@ export function AppSidebar() {
   ];
 
   const adminNavItems = [
+    {
+      title: t("nav.company"),
+      url: "/admin/company",
+      icon: Building2,
+    },
     {
       title: t("nav.users"),
       url: "/admin/users",
