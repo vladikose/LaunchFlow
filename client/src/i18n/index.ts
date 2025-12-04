@@ -84,6 +84,7 @@ const resources = {
         coverImageUpdated: "Cover image updated",
         collapseAll: "Collapse All",
         expandAll: "Expand All",
+        overdue: "overdue",
         status: {
           active: "Active",
           completed: "Completed",
@@ -433,6 +434,7 @@ const resources = {
         coverImageUpdated: "Обложка обновлена",
         collapseAll: "Свернуть все",
         expandAll: "Развернуть все",
+        overdue: "просрочен",
         status: {
           active: "Активные",
           completed: "Завершенные",
@@ -782,6 +784,7 @@ const resources = {
         coverImageUpdated: "封面图片已更新",
         collapseAll: "全部折叠",
         expandAll: "全部展开",
+        overdue: "已逾期",
         status: {
           active: "进行中",
           completed: "已完成",
