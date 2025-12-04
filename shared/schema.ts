@@ -86,6 +86,103 @@ export type CustomField = {
   required?: boolean;
 };
 
+// Block types for template builder
+export type BlockType = 
+  | 'comments' 
+  | 'checklist' 
+  | 'customFields' 
+  | 'files' 
+  | 'tasks' 
+  | 'substages' 
+  | 'gallery'
+  | 'divider'
+  | 'header';
+
+// Checklist item configuration
+export type ChecklistItemConfig = {
+  key: string;
+  label: string;
+  labelRu?: string;
+  labelZh?: string;
+  required?: boolean;
+  acceptedFileTypes?: string[];
+};
+
+// Block configuration types
+export type CommentsBlockConfig = {
+  mentionsEnabled?: boolean;
+};
+
+export type ChecklistBlockConfig = {
+  items: ChecklistItemConfig[];
+};
+
+export type CustomFieldsBlockConfig = {
+  fields: CustomField[];
+};
+
+export type FilesBlockConfig = {
+  accept?: string[];
+  maxFiles?: number;
+  scope?: 'stage' | 'checklist';
+};
+
+export type TasksBlockConfig = {
+  allowAssign?: boolean;
+  showAssignees?: boolean;
+};
+
+export type SubstagesBlockConfig = {
+  items: {
+    key: string;
+    label: string;
+    labelRu?: string;
+    labelZh?: string;
+  }[];
+};
+
+export type GalleryBlockConfig = {
+  source: 'stage_files' | 'external';
+  maxItems?: number;
+  layout?: 'grid' | 'carousel';
+};
+
+export type HeaderBlockConfig = {
+  text: string;
+  textRu?: string;
+  textZh?: string;
+  level?: 'h2' | 'h3' | 'h4';
+};
+
+export type DividerBlockConfig = {
+  style?: 'solid' | 'dashed' | 'dotted';
+};
+
+// Union type for all block configs
+export type BlockConfig = 
+  | CommentsBlockConfig 
+  | ChecklistBlockConfig 
+  | CustomFieldsBlockConfig 
+  | FilesBlockConfig 
+  | TasksBlockConfig 
+  | SubstagesBlockConfig 
+  | GalleryBlockConfig
+  | HeaderBlockConfig
+  | DividerBlockConfig
+  | Record<string, never>;
+
+// Template block definition
+export type TemplateBlock = {
+  id: string;
+  type: BlockType;
+  title?: string;
+  titleRu?: string;
+  titleZh?: string;
+  required?: boolean;
+  collapsed?: boolean;
+  config: BlockConfig;
+};
+
 // Stage templates (for admin customization)
 export const stageTemplates = pgTable("stage_templates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -100,6 +197,7 @@ export const stageTemplates = pgTable("stage_templates", {
   hasConditionalSubstages: boolean("has_conditional_substages").default(false),
   conditionalSubstages: jsonb("conditional_substages").$type<string[]>(),
   customFields: jsonb("custom_fields").$type<CustomField[]>(),
+  blocks: jsonb("blocks").$type<TemplateBlock[]>(),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });

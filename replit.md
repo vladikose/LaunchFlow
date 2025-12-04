@@ -130,6 +130,18 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### Visual Block-Based Template Builder (Latest)
+- New `blocks` JSONB column in stage_templates for storing block configurations
+- TemplateBuilder component with three-column layout: palette, canvas, and preview
+- 9 block types: comments, checklist, customFields, files, tasks, substages, gallery, divider, header
+- Each block has: id, type, title (multi-language), config, required flag, collapsed option
+- Per-block configuration forms for customizing block behavior
+- Multi-language title support (EN, RU, ZH) for all block types
+- Block reordering with up/down controls
+- Live preview of block structure
+- Admin panel uses tabs to switch between "Basic Settings" and "Block Builder"
+- Full i18n translations for builder interface
+
 ### Custom Fields for Stage Templates
 - Stage templates now support custom fields (text, textarea, number types)
 - Custom fields are defined at the template level and stored in customFields JSONB column

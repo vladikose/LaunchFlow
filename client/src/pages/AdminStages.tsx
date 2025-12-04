@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -39,8 +40,11 @@ import {
   FileText,
   ToggleLeft,
   X,
+  Blocks,
+  Settings,
 } from "lucide-react";
-import type { StageTemplate, CustomField } from "@shared/schema";
+import TemplateBuilder from "@/components/TemplateBuilder";
+import type { StageTemplate, CustomField, TemplateBlock } from "@shared/schema";
 
 export default function AdminStages() {
   const { t } = useTranslation();
@@ -58,8 +62,10 @@ export default function AdminStages() {
     hasConditionalSubstages: false,
     conditionalSubstages: [] as string[],
     customFields: [] as CustomField[],
+    blocks: [] as TemplateBlock[],
     isActive: true,
   });
+  const [activeTab, setActiveTab] = useState<"settings" | "builder">("settings");
   const [newChecklistItem, setNewChecklistItem] = useState("");
   const [newCustomField, setNewCustomField] = useState({
     key: "",
@@ -149,9 +155,11 @@ export default function AdminStages() {
       hasConditionalSubstages: false,
       conditionalSubstages: [],
       customFields: [],
+      blocks: [],
       isActive: true,
     });
     setEditingTemplate(null);
+    setActiveTab("settings");
     setNewChecklistItem("");
     setNewCustomField({
       key: "",
@@ -175,8 +183,10 @@ export default function AdminStages() {
       hasConditionalSubstages: template.hasConditionalSubstages || false,
       conditionalSubstages: (template.conditionalSubstages as string[]) || [],
       customFields: (template.customFields as CustomField[]) || [],
+      blocks: (template.blocks as TemplateBlock[]) || [],
       isActive: template.isActive ?? true,
     });
+    setActiveTab("settings");
     setShowModal(true);
   };
 
@@ -410,7 +420,7 @@ export default function AdminStages() {
       </Card>
 
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className={activeTab === "builder" ? "max-w-6xl max-h-[90vh] overflow-y-auto" : "max-w-2xl max-h-[90vh] overflow-y-auto"}>
           <DialogHeader>
             <DialogTitle>
               {editingTemplate ? t("admin.stageTemplates.edit") : t("admin.stageTemplates.add")}
@@ -419,69 +429,82 @@ export default function AdminStages() {
               {t("admin.stageTemplates.configureSettings")}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-6 py-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>{t("admin.stageTemplates.name")} (EN) *</Label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Stage name in English"
-                  data-testid="input-template-name"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+          
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "settings" | "builder")} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="settings" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                {t("admin.stageTemplates.basicSettings") || "Basic Settings"}
+              </TabsTrigger>
+              <TabsTrigger value="builder" className="flex items-center gap-2">
+                <Blocks className="h-4 w-4" />
+                {t("admin.stageTemplates.blockBuilder") || "Block Builder"}
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="settings" className="space-y-6 py-4">
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>{t("admin.stageTemplates.name")} (RU)</Label>
+                  <Label>{t("admin.stageTemplates.name")} (EN) *</Label>
                   <Input
-                    value={formData.nameRu}
-                    onChange={(e) => setFormData({ ...formData, nameRu: e.target.value })}
-                    placeholder="Название на русском"
-                    data-testid="input-template-name-ru"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Stage name in English"
+                    data-testid="input-template-name"
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>{t("admin.stageTemplates.name")} (RU)</Label>
+                    <Input
+                      value={formData.nameRu}
+                      onChange={(e) => setFormData({ ...formData, nameRu: e.target.value })}
+                      placeholder="Название на русском"
+                      data-testid="input-template-name-ru"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>{t("admin.stageTemplates.name")} (ZH)</Label>
+                    <Input
+                      value={formData.nameZh}
+                      onChange={(e) => setFormData({ ...formData, nameZh: e.target.value })}
+                      placeholder="中文名称"
+                      data-testid="input-template-name-zh"
+                    />
+                  </div>
+                </div>
                 <div className="space-y-2">
-                  <Label>{t("admin.stageTemplates.name")} (ZH)</Label>
+                  <Label>{t("admin.stageTemplates.position")}</Label>
                   <Input
-                    value={formData.nameZh}
-                    onChange={(e) => setFormData({ ...formData, nameZh: e.target.value })}
-                    placeholder="中文名称"
-                    data-testid="input-template-name-zh"
+                    type="number"
+                    min={1}
+                    value={formData.position}
+                    onChange={(e) =>
+                      setFormData({ ...formData, position: parseInt(e.target.value) || 1 })
+                    }
+                    data-testid="input-template-position"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="is-active">{t("admin.stageTemplates.activeByDefault")}</Label>
+                  <Switch
+                    id="is-active"
+                    checked={formData.isActive}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, isActive: checked })
+                    }
+                    data-testid="switch-is-active"
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>{t("admin.stageTemplates.position")}</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={formData.position}
-                  onChange={(e) =>
-                    setFormData({ ...formData, position: parseInt(e.target.value) || 1 })
-                  }
-                  data-testid="input-template-position"
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="is-active">{t("admin.stageTemplates.activeByDefault")}</Label>
-                <Switch
-                  id="is-active"
-                  checked={formData.isActive}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, isActive: checked })
-                  }
-                  data-testid="switch-is-active"
-                />
-              </div>
-            </div>
 
-            <Separator />
+              <Separator />
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="has-checklist">{t("admin.stageTemplates.hasChecklist")}</Label>
-                <Switch
-                  id="has-checklist"
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="has-checklist">{t("admin.stageTemplates.hasChecklist")}</Label>
+                  <Switch
+                    id="has-checklist"
                   checked={formData.hasChecklist}
                   onCheckedChange={(checked) =>
                     setFormData({ ...formData, hasChecklist: checked })
@@ -630,7 +653,16 @@ export default function AdminStages() {
                 </div>
               )}
             </div>
-          </div>
+            </TabsContent>
+            
+            <TabsContent value="builder" className="py-4">
+              <TemplateBuilder
+                blocks={formData.blocks}
+                onChange={(blocks) => setFormData({ ...formData, blocks })}
+              />
+            </TabsContent>
+          </Tabs>
+          
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowModal(false)}>
               {t("common.cancel")}
