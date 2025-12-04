@@ -286,7 +286,10 @@ export async function registerRoutes(
       if (firstName !== undefined) updateData.firstName = firstName;
       if (lastName !== undefined) updateData.lastName = lastName;
       if (jobTitle !== undefined) updateData.jobTitle = jobTitle;
-      if (profileImageUrl !== undefined) updateData.profileImageUrl = profileImageUrl;
+      if (profileImageUrl !== undefined) {
+        // Normalize profile image URL to /objects/ path format
+        updateData.profileImageUrl = objectStorageService.normalizeObjectEntityPath(profileImageUrl);
+      }
       
       const user = await storage.updateUser(authUser.id, updateData);
       if (!user) {
