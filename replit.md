@@ -130,7 +130,26 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### Visual Block-Based Template Builder (Latest)
+### Project Detail Page UI Redesign (Latest)
+- Completely redesigned project header with:
+  - Product image placeholder (rounded square)
+  - Project name and description
+  - Progress bar showing completion percentage
+  - Timeline Summary card (Start Date, Est. Launch, Days Remaining)
+- New stage card design:
+  - Numbered position badges (1, 2, 3...)
+  - Bilingual stage names (Russian primary, English secondary)
+  - Checkmark icon for completed stages
+  - Date range display (e.g., "Dec 4 - Dec 7")
+  - Comments and attachments count icons
+  - Status dropdown in card header
+  - Parent-controlled Collapsible for expand/collapse
+- Collapse All / Expand All buttons for bulk stage management
+- Two-column layout in expanded stage: Comments (left), Attachments (right)
+- Full multi-language support for new UI elements (EN/RU/ZH)
+- File URL normalization: server converts GCS URLs to /objects/ format
+
+### Visual Block-Based Template Builder
 - New `blocks` JSONB column in stage_templates for storing block configurations
 - TemplateBuilder component with three-column layout: palette, canvas, and preview
 - 9 block types: comments, checklist, customFields, files, tasks, substages, gallery, divider, header
