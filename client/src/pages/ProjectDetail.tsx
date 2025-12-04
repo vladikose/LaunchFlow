@@ -311,46 +311,54 @@ export default function ProjectDetail() {
               </div>
               <span className="text-sm font-medium">{progress}%</span>
             </div>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm pt-1">
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">{t("projects.startDate") || "Start Date"}:</span>
-                <span className="font-medium">{formatDateShort(startDate)}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">{t("projects.estLaunch") || "Est. Launch"}:</span>
-                <span className="font-medium">{formatDateShort(project.deadline)}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">{t("projects.daysRemaining") || "Days Remaining"}:</span>
-                <span className={`font-semibold ${daysRemaining !== null && daysRemaining < 0 ? "text-destructive" : daysRemaining !== null && daysRemaining <= 7 ? "text-orange-500" : "text-primary"}`}>
-                  {daysRemaining !== null ? (daysRemaining < 0 ? `${Math.abs(daysRemaining)} ${t("projects.overdue") || "overdue"}` : daysRemaining) : "-"}
-                </span>
-              </div>
-            </div>
           </div>
         </div>
 
-        {project.responsibleUser && (
-          <div className="flex items-start gap-3 lg:flex-shrink-0" data-testid="responsible-user-info">
-            <div className="text-right">
-              <p className="text-xs text-muted-foreground mb-1">{t("projects.responsible") || "Responsible"}</p>
-              <p className="font-medium" data-testid="text-responsible-name">
-                {project.responsibleUser.firstName} {project.responsibleUser.lastName}
-              </p>
-              {project.responsibleUser.jobTitle && (
-                <p className="text-sm text-muted-foreground" data-testid="text-responsible-job-title">
-                  {project.responsibleUser.jobTitle}
+        <div className="flex flex-col gap-3 lg:w-72 flex-shrink-0">
+          {project.responsibleUser && (
+            <div className="flex items-center gap-3 justify-end" data-testid="responsible-user-info">
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground mb-0.5">{t("projects.responsible") || "Responsible"}</p>
+                <p className="font-medium" data-testid="text-responsible-name">
+                  {project.responsibleUser.firstName} {project.responsibleUser.lastName}
                 </p>
-              )}
+                {project.responsibleUser.jobTitle && (
+                  <p className="text-sm text-muted-foreground" data-testid="text-responsible-job-title">
+                    {project.responsibleUser.jobTitle}
+                  </p>
+                )}
+              </div>
+              <Avatar className="h-12 w-12" data-testid="avatar-responsible">
+                <AvatarImage src={project.responsibleUser.profileImageUrl || undefined} />
+                <AvatarFallback>
+                  {(project.responsibleUser.firstName?.charAt(0) || "") + (project.responsibleUser.lastName?.charAt(0) || "")}
+                </AvatarFallback>
+              </Avatar>
             </div>
-            <Avatar className="h-12 w-12" data-testid="avatar-responsible">
-              <AvatarImage src={project.responsibleUser.profileImageUrl || undefined} />
-              <AvatarFallback>
-                {(project.responsibleUser.firstName?.charAt(0) || "") + (project.responsibleUser.lastName?.charAt(0) || "")}
-              </AvatarFallback>
-            </Avatar>
-          </div>
-        )}
+          )}
+
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <h3 className="font-semibold text-sm">{t("projects.timelineSummary") || "Timeline Summary"}</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t("projects.startDate") || "Start Date"}</span>
+                  <span className="font-mono">{formatDateShort(startDate)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t("projects.estLaunch") || "Est. Launch"}</span>
+                  <span className="font-mono">{formatDateShort(project.deadline)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">{t("projects.daysRemaining") || "Days Remaining"}</span>
+                  <span className={`font-semibold ${daysRemaining !== null && daysRemaining < 0 ? "text-destructive" : daysRemaining !== null && daysRemaining <= 7 ? "text-orange-500" : "text-primary"}`}>
+                    {daysRemaining !== null ? (daysRemaining < 0 ? `${Math.abs(daysRemaining)} ${t("projects.overdue") || "overdue"}` : daysRemaining) : "-"}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <div className="space-y-4">
