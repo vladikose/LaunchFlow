@@ -274,7 +274,7 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Unauthorized" });
       }
       const companyId = await ensureUserCompany(authUser.id);
-      const projects = await storage.getProjectsByCompany(companyId);
+      const projects = await storage.getProjectsWithStageStatus(companyId);
       res.json(projects);
     } catch (error) {
       console.error("Error getting projects:", error);

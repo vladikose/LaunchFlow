@@ -50,6 +50,7 @@ export interface IStorage {
 
   createProject(project: InsertProject): Promise<Project>;
   getProjectsByCompany(companyId: string): Promise<Project[]>;
+  getProjectsWithStageStatus(companyId: string): Promise<(Project & { stages: Array<{ status: string }> })[]>;
   getProjectById(id: string): Promise<ProjectWithRelations | undefined>;
   updateProject(id: string, data: Partial<Project>): Promise<Project | undefined>;
   deleteProject(id: string): Promise<void>;
@@ -162,6 +163,29 @@ export class DatabaseStorage implements IStorage {
       .from(projects)
       .where(eq(projects.companyId, companyId))
       .orderBy(desc(projects.createdAt));
+  }
+
+  async getProjectsWithStageStatus(companyId: string): Promise<(Project & { stages: Array<{ status: string }> })[]> {
+    const companyProjects = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.companyId, companyId))
+      .orderBy(desc(projects.createdAt));
+
+    const result = await Promise.all(
+      companyProjects.map(async (project) => {
+        const projectStages = await db
+          .select({ status: stages.status })
+          .from(stages)
+          .where(eq(stages.projectId, project.id));
+        return {
+          ...project,
+          stages: projectStages.map(s => ({ status: s.status || 'waiting' })),
+        };
+      })
+    );
+
+    return result;
   }
 
   async getProjectById(id: string): Promise<ProjectWithRelations | undefined> {
