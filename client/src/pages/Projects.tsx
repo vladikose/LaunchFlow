@@ -22,12 +22,14 @@ import {
   User,
   AlertTriangle,
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import type { Project, User as UserType } from "@shared/schema";
 
 type FilterType = "all" | "my" | "overdue";
 
 export default function Projects() {
   const { t } = useTranslation();
+  const { user: currentUser } = useAuth();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
 
@@ -57,6 +59,10 @@ export default function Projects() {
     const matchesSearch = project.name
       .toLowerCase()
       .includes(search.toLowerCase());
+    
+    if (filter === "my") {
+      return matchesSearch && project.responsibleUserId === currentUser?.id;
+    }
     
     if (filter === "overdue") {
       return matchesSearch && isOverdue(project);
