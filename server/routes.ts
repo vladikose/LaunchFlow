@@ -16,6 +16,7 @@ function getUser(req: Request): User | null {
     email: user.claims.email || null,
     firstName: user.claims.first_name || null,
     lastName: user.claims.last_name || null,
+    jobTitle: null,
     profileImageUrl: user.claims.profile_image_url || null,
     companyId: null,
     role: null,
@@ -468,6 +469,26 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/projects/:id/products", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const project = await storage.getProjectById(req.params.id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      const products = await storage.getProductsByProject(req.params.id);
+      res.json(products);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.post("/api/projects/:id/generate-stages", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const authUser = getUser(req);
@@ -536,6 +557,13 @@ export async function registerRoutes(
     }
   });
 
+  const distributionDataSchema = z.object({
+    productPrices: z.record(z.number()).optional(),
+    websiteDescription: z.string().optional(),
+    videoDescription: z.string().optional(),
+    mailingText: z.string().optional(),
+  });
+
   const updateStageSchema = z.object({
     status: z.enum(["waiting", "in_progress", "skip", "completed"]).optional(),
     startDate: z.string().optional().nullable(),
@@ -544,6 +572,7 @@ export async function registerRoutes(
     conditionalEnabled: z.boolean().optional(),
     conditionalSubstagesData: z.record(z.any()).optional().nullable(),
     customFieldsData: z.record(z.string()).optional().nullable(),
+    distributionData: distributionDataSchema.optional().nullable(),
   });
 
   app.patch("/api/stages/:id", isAuthenticated, async (req: Request, res: Response) => {
