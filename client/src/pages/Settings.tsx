@@ -150,6 +150,20 @@ export default function Settings() {
     return (first + last).toUpperCase() || "U";
   };
 
+  const getAvatarSrc = (url: string | null | undefined): string | undefined => {
+    if (!url) return undefined;
+    if (url.startsWith('/objects/')) {
+      return url;
+    }
+    if (url.includes('storage.googleapis.com')) {
+      const match = url.match(/\/(\.private\/uploads\/[^/]+|uploads\/[^/]+)$/);
+      if (match) {
+        return `/objects/${match[1]}`;
+      }
+    }
+    return url;
+  };
+
   if (isLoading) {
     return (
       <div className="p-6 space-y-6">
@@ -181,7 +195,7 @@ export default function Settings() {
           <CardContent className="flex flex-col items-center gap-4">
             <div className="relative">
               <Avatar className="h-32 w-32">
-                <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || ""} />
+                <AvatarImage src={getAvatarSrc(user?.profileImageUrl)} alt={user?.firstName || ""} />
                 <AvatarFallback className="text-2xl">
                   {getInitials(user?.firstName, user?.lastName)}
                 </AvatarFallback>
