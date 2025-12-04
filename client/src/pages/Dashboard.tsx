@@ -144,13 +144,8 @@ export default function Dashboard() {
                       <div className="h-3 w-3 rounded-full bg-primary" />
                       <span className="text-sm font-medium">{t("projects.status.active")}</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <span className="text-lg font-semibold">{stats.companyActiveProjects}</span>
-                        <span className="text-sm text-muted-foreground ml-2">
-                          ({t("dashboard.mine")}: {stats.userActiveProjects})
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-semibold">{stats.companyActiveProjects}</span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </div>
@@ -161,13 +156,8 @@ export default function Dashboard() {
                       <div className="h-3 w-3 rounded-full bg-green-500" />
                       <span className="text-sm font-medium">{t("projects.status.completed")}</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <span className="text-lg font-semibold">{stats.companyCompletedProjects}</span>
-                        <span className="text-sm text-muted-foreground ml-2">
-                          ({t("dashboard.mine")}: {stats.userCompletedProjects})
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-semibold">{stats.companyCompletedProjects}</span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </div>
@@ -178,13 +168,8 @@ export default function Dashboard() {
                       <div className="h-3 w-3 rounded-full bg-red-500" />
                       <span className="text-sm font-medium">{t("projects.status.overdue")}</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <span className="text-lg font-semibold">{stats.companyOverdueProjects}</span>
-                        <span className="text-sm text-muted-foreground ml-2">
-                          ({t("dashboard.mine")}: {stats.userOverdueProjects})
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-semibold">{stats.companyOverdueProjects}</span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </div>

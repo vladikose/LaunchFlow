@@ -262,7 +262,7 @@ const resources = {
         myAvgProjectDuration: "Avg. Project Time",
         mine: "mine",
         recentActivity: "Recent Activity",
-        projectsByStatus: "Projects by Status",
+        projectsByStatus: "Company Projects by Status",
       },
       files: {
         uploaded: "Uploaded",
@@ -585,7 +585,7 @@ const resources = {
         myAvgProjectDuration: "Среднее время проекта",
         mine: "мои",
         recentActivity: "Последняя активность",
-        projectsByStatus: "Проекты по статусу",
+        projectsByStatus: "Проекты компании по статусу",
       },
       files: {
         uploaded: "Загружено",
@@ -908,7 +908,7 @@ const resources = {
         myAvgProjectDuration: "平均项目时长",
         mine: "我的",
         recentActivity: "最近活动",
-        projectsByStatus: "项目状态分布",
+        projectsByStatus: "公司项目状态分布",
       },
       files: {
         uploaded: "已上传",
