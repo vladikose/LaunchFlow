@@ -57,6 +57,7 @@ export default function AdminCompany() {
   const [companyName, setCompanyName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"user" | "admin">("user");
+  const [inviteMaxUses, setInviteMaxUses] = useState<number>(1);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [generatedInviteLink, setGeneratedInviteLink] = useState<string | null>(null);
 
@@ -92,7 +93,7 @@ export default function AdminCompany() {
   });
 
   const createInviteMutation = useMutation({
-    mutationFn: async (data: { email?: string; role: string }) => {
+    mutationFn: async (data: { email?: string; role: string; maxUses: number }) => {
       const response = await apiRequest("POST", "/api/company/invites", data);
       return response.json();
     },
@@ -142,7 +143,8 @@ export default function AdminCompany() {
   const handleCreateInvite = () => {
     createInviteMutation.mutate({ 
       email: inviteEmail.trim() || undefined, 
-      role: inviteRole 
+      role: inviteRole,
+      maxUses: inviteMaxUses
     });
   };
 
@@ -157,10 +159,17 @@ export default function AdminCompany() {
     setIsInviteDialogOpen(false);
     setInviteEmail("");
     setInviteRole("user");
+    setInviteMaxUses(1);
     setGeneratedInviteLink(null);
   };
 
-  const pendingInvites = invites?.filter(inv => !inv.usedById && new Date(inv.expiresAt) > new Date()) || [];
+  const pendingInvites = invites?.filter(inv => {
+    const maxUses = inv.maxUses || 1;
+    const usedCount = inv.usedCount || 0;
+    const isExpired = new Date(inv.expiresAt) <= new Date();
+    const isExhausted = maxUses > 0 && usedCount >= maxUses;
+    return !isExpired && !isExhausted;
+  }) || [];
 
   const getUserInitials = (user: User) => {
     if (user.firstName && user.lastName) {
@@ -313,6 +322,27 @@ export default function AdminCompany() {
                           </SelectContent>
                         </Select>
                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="inviteMaxUses">{t("admin.company.invites.maxUses")}</Label>
+                        <Select 
+                          value={inviteMaxUses.toString()} 
+                          onValueChange={(v) => setInviteMaxUses(parseInt(v))}
+                        >
+                          <SelectTrigger data-testid="select-invite-max-uses">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">{t("admin.company.invites.singleUse")}</SelectItem>
+                            <SelectItem value="5">5 {t("admin.company.invites.uses")}</SelectItem>
+                            <SelectItem value="10">10 {t("admin.company.invites.uses")}</SelectItem>
+                            <SelectItem value="25">25 {t("admin.company.invites.uses")}</SelectItem>
+                            <SelectItem value="0">{t("admin.company.invites.unlimited")}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-sm text-muted-foreground">
+                          {t("admin.company.invites.maxUsesHint")}
+                        </p>
+                      </div>
                     </div>
                     <DialogFooter>
                       <Button variant="outline" onClick={handleCloseInviteDialog}>
@@ -349,39 +379,64 @@ export default function AdminCompany() {
               <p className="text-sm text-muted-foreground py-4">{t("admin.company.invites.noPending")}</p>
             ) : (
               <div className="space-y-2">
-                {pendingInvites.map((invite) => (
-                  <div 
-                    key={invite.id} 
-                    className="flex items-center justify-between p-3 border rounded-md"
-                    data-testid={`invite-item-${invite.id}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">
-                          {invite.email || "General Invite Link"}
-                        </span>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Badge variant="outline" className="text-xs">
-                            {invite.role === "admin" ? t("admin.company.invites.roleAdmin") : t("admin.company.invites.roleUser")}
-                          </Badge>
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {t("admin.company.invites.expires")}: {format(new Date(invite.expiresAt), "MMM d, yyyy")}
+                {pendingInvites.map((invite) => {
+                  const maxUses = invite.maxUses || 1;
+                  const usedCount = invite.usedCount || 0;
+                  const isUnlimited = maxUses === 0;
+                  return (
+                    <div 
+                      key={invite.id} 
+                      className="flex items-center justify-between p-3 border rounded-md"
+                      data-testid={`invite-item-${invite.id}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">
+                            {invite.email || t("admin.company.invites.generalLink")}
                           </span>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                            <Badge variant="outline" className="text-xs">
+                              {invite.role === "admin" ? t("admin.company.invites.roleAdmin") : t("admin.company.invites.roleUser")}
+                            </Badge>
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {t("admin.company.invites.expires")}: {format(new Date(invite.expiresAt), "MMM d, yyyy")}
+                            </span>
+                            <Badge variant="secondary" className="text-xs">
+                              {isUnlimited 
+                                ? `${usedCount} ${t("admin.company.invites.usedUnlimited")}`
+                                : `${usedCount}/${maxUses} ${t("admin.company.invites.used")}`
+                              }
+                            </Badge>
+                          </div>
                         </div>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={async () => {
+                            const link = `${window.location.origin}/invite/${invite.token}`;
+                            await navigator.clipboard.writeText(link);
+                            toast({ title: t("admin.company.invites.linkCopied") });
+                          }}
+                          data-testid={`button-copy-invite-${invite.id}`}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => deleteInviteMutation.mutate(invite.id)}
+                          disabled={deleteInviteMutation.isPending}
+                          data-testid={`button-delete-invite-${invite.id}`}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => deleteInviteMutation.mutate(invite.id)}
-                      disabled={deleteInviteMutation.isPending}
-                      data-testid={`button-delete-invite-${invite.id}`}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

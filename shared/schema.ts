@@ -61,6 +61,8 @@ export const companyInvites = pgTable("company_invites", {
   createdById: varchar("created_by_id").references(() => users.id),
   usedById: varchar("used_by_id").references(() => users.id),
   usedAt: timestamp("used_at"),
+  maxUses: integer("max_uses").default(1),
+  usedCount: integer("used_count").default(0),
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });

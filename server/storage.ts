@@ -784,7 +784,11 @@ export class DatabaseStorage implements IStorage {
   async useCompanyInvite(token: string, userId: string): Promise<CompanyInvite | undefined> {
     const [invite] = await db
       .update(companyInvites)
-      .set({ usedById: userId, usedAt: new Date() })
+      .set({ 
+        usedById: userId, 
+        usedAt: new Date(),
+        usedCount: sql`COALESCE(${companyInvites.usedCount}, 0) + 1`
+      })
       .where(eq(companyInvites.token, token))
       .returning();
     return invite;

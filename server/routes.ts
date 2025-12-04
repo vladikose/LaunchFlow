@@ -346,7 +346,7 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Admin access required" });
       }
       const companyId = await ensureUserCompany(authUser.id);
-      const { email, role } = req.body;
+      const { email, role, maxUses } = req.body;
       
       // Generate a unique token
       const token = randomBytes(32).toString("hex");
@@ -361,6 +361,7 @@ export async function registerRoutes(
         email: email || null,
         role: role || "user",
         createdById: authUser.id,
+        maxUses: maxUses || 1,
         expiresAt,
       });
       
@@ -417,9 +418,14 @@ export async function registerRoutes(
       if (!invite) {
         return res.status(404).json({ message: "Invite not found" });
       }
-      if (invite.usedAt) {
-        return res.status(400).json({ message: "Invite already used" });
+      
+      // Check if invite is exhausted (for limited-use invites)
+      const maxUses = invite.maxUses || 1;
+      const usedCount = invite.usedCount || 0;
+      if (maxUses > 0 && usedCount >= maxUses) {
+        return res.status(400).json({ message: "Invite usage limit reached" });
       }
+      
       if (new Date() > new Date(invite.expiresAt)) {
         return res.status(400).json({ message: "Invite expired" });
       }
@@ -431,6 +437,8 @@ export async function registerRoutes(
         companyName: company?.name,
         email: invite.email,
         role: invite.role,
+        maxUses: invite.maxUses,
+        usedCount: invite.usedCount,
       });
     } catch (error) {
       console.error("Error validating invite:", error);
@@ -450,14 +458,19 @@ export async function registerRoutes(
       if (!invite) {
         return res.status(404).json({ message: "Invite not found" });
       }
-      if (invite.usedAt) {
-        return res.status(400).json({ message: "Invite already used" });
+      
+      // Check if invite is exhausted (for limited-use invites)
+      const maxUses = invite.maxUses || 1;
+      const usedCount = invite.usedCount || 0;
+      if (maxUses > 0 && usedCount >= maxUses) {
+        return res.status(400).json({ message: "Invite usage limit reached" });
       }
+      
       if (new Date() > new Date(invite.expiresAt)) {
         return res.status(400).json({ message: "Invite expired" });
       }
       
-      // Mark invite as used
+      // Mark invite as used (increments count)
       await storage.useCompanyInvite(req.params.token, authUser.id);
       
       // Update user with company and role
