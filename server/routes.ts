@@ -185,7 +185,6 @@ async function ensureStageTemplates(companyId: string): Promise<void> {
 async function ensureUserCompany(userId: string): Promise<string | null> {
   const user = await storage.getUser(userId);
   if (user?.companyId) {
-    await ensureStageTemplates(user.companyId);
     return user.companyId;
   }
   return null;
