@@ -80,6 +80,8 @@ const resources = {
         },
         filters: {
           all: "All Projects",
+          active: "Active",
+          completed: "Completed",
           myProjects: "My Projects",
           overdue: "Overdue",
         },
@@ -333,6 +335,8 @@ const resources = {
         },
         filters: {
           all: "Все проекты",
+          active: "Активные",
+          completed: "Завершенные",
           myProjects: "Мои проекты",
           overdue: "Просроченные",
         },
@@ -586,6 +590,8 @@ const resources = {
         },
         filters: {
           all: "所有项目",
+          active: "进行中",
+          completed: "已完成",
           myProjects: "我的项目",
           overdue: "逾期项目",
         },

@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,17 +21,29 @@ import {
   Calendar,
   User,
   AlertTriangle,
+  CheckCircle2,
+  BarChart3,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import type { Project, User as UserType } from "@shared/schema";
 
-type FilterType = "all" | "my" | "overdue";
+type FilterType = "all" | "my" | "overdue" | "active" | "completed";
 
 export default function Projects() {
   const { t } = useTranslation();
   const { user: currentUser } = useAuth();
+  const searchString = useSearch();
+  const urlParams = new URLSearchParams(searchString);
+  const urlFilter = urlParams.get("filter") as FilterType | null;
+  
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<FilterType>("all");
+  const [filter, setFilter] = useState<FilterType>(urlFilter || "all");
+  
+  useEffect(() => {
+    if (urlFilter && ["all", "my", "overdue", "active", "completed"].includes(urlFilter)) {
+      setFilter(urlFilter);
+    }
+  }, [urlFilter]);
 
   const { data: projects, isLoading } = useQuery<Project[]>({
     queryKey: ["/api/projects"],
@@ -55,6 +67,16 @@ export default function Projects() {
     return new Date(project.deadline) < new Date();
   };
 
+  const isCompleted = (project: Project & { stages?: Array<{ status: string }> }) => {
+    if (!project.stages || project.stages.length === 0) return false;
+    return project.stages.every((stage) => stage.status === "completed");
+  };
+
+  const isActive = (project: Project & { stages?: Array<{ status: string }> }) => {
+    if (!project.stages || project.stages.length === 0) return true;
+    return project.stages.some((stage) => stage.status !== "completed");
+  };
+
   const filteredProjects = projects?.filter((project) => {
     const matchesSearch = project.name
       .toLowerCase()
@@ -66,6 +88,14 @@ export default function Projects() {
     
     if (filter === "overdue") {
       return matchesSearch && isOverdue(project);
+    }
+    
+    if (filter === "active") {
+      return matchesSearch && isActive(project);
+    }
+    
+    if (filter === "completed") {
+      return matchesSearch && isCompleted(project);
     }
     
     return matchesSearch;
@@ -105,8 +135,10 @@ export default function Projects() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{t("projects.filters.all")}</SelectItem>
-            <SelectItem value="my">{t("projects.filters.myProjects")}</SelectItem>
+            <SelectItem value="active">{t("projects.filters.active")}</SelectItem>
+            <SelectItem value="completed">{t("projects.filters.completed")}</SelectItem>
             <SelectItem value="overdue">{t("projects.filters.overdue")}</SelectItem>
+            <SelectItem value="my">{t("projects.filters.myProjects")}</SelectItem>
           </SelectContent>
         </Select>
       </div>

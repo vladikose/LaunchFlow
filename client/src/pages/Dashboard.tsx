@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
@@ -7,7 +8,8 @@ import {
   CheckCircle2, 
   Clock, 
   AlertTriangle,
-  TrendingUp
+  TrendingUp,
+  ChevronRight
 } from "lucide-react";
 import type { Project } from "@shared/schema";
 
@@ -45,6 +47,8 @@ export default function Dashboard() {
       icon: BarChart3,
       color: "text-primary",
       bgColor: "bg-primary/10",
+      link: "/projects?filter=active",
+      testId: "card-active-projects",
     },
     {
       title: t("dashboard.completedProjects"),
@@ -52,6 +56,8 @@ export default function Dashboard() {
       icon: CheckCircle2,
       color: "text-green-600 dark:text-green-400",
       bgColor: "bg-green-100 dark:bg-green-900/30",
+      link: "/projects?filter=completed",
+      testId: "card-completed-projects",
     },
     {
       title: t("dashboard.overdueProjects"),
@@ -59,6 +65,8 @@ export default function Dashboard() {
       icon: AlertTriangle,
       color: "text-red-600 dark:text-red-400",
       bgColor: "bg-red-100 dark:bg-red-900/30",
+      link: "/projects?filter=overdue",
+      testId: "card-overdue-projects",
     },
     {
       title: t("dashboard.avgStageDuration"),
@@ -66,6 +74,8 @@ export default function Dashboard() {
       icon: Clock,
       color: "text-amber-600 dark:text-amber-400",
       bgColor: "bg-amber-100 dark:bg-amber-900/30",
+      link: null,
+      testId: "card-avg-duration",
     },
   ];
 
@@ -81,8 +91,8 @@ export default function Dashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((stat, index) => (
-          <Card key={index} data-testid={`card-stat-${index}`}>
+        {statCards.map((stat, index) => {
+          const cardContent = (
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -98,8 +108,24 @@ export default function Dashboard() {
                 </div>
               </div>
             </CardContent>
-          </Card>
-        ))}
+          );
+
+          if (stat.link) {
+            return (
+              <Link key={index} href={stat.link}>
+                <Card className="hover-elevate cursor-pointer transition-all" data-testid={stat.testId}>
+                  {cardContent}
+                </Card>
+              </Link>
+            );
+          }
+
+          return (
+            <Card key={index} data-testid={stat.testId}>
+              {cardContent}
+            </Card>
+          );
+        })}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -118,28 +144,43 @@ export default function Dashboard() {
                 <Skeleton className="h-8 w-1/2" />
               </div>
             ) : projects && projects.length > 0 ? (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 rounded-full bg-primary" />
-                    <span className="text-sm">{t("projects.status.active")}</span>
+              <div className="space-y-2">
+                <Link href="/projects?filter=active" data-testid="link-status-active">
+                  <div className="flex items-center justify-between p-2 rounded-lg hover-elevate cursor-pointer transition-all">
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-3 rounded-full bg-primary" />
+                      <span className="text-sm">{t("projects.status.active")}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{stats.activeProjects}</span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
                   </div>
-                  <span className="font-medium">{stats.activeProjects}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 rounded-full bg-green-500" />
-                    <span className="text-sm">{t("projects.status.completed")}</span>
+                </Link>
+                <Link href="/projects?filter=completed" data-testid="link-status-completed">
+                  <div className="flex items-center justify-between p-2 rounded-lg hover-elevate cursor-pointer transition-all">
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-3 rounded-full bg-green-500" />
+                      <span className="text-sm">{t("projects.status.completed")}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{stats.completedProjects}</span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
                   </div>
-                  <span className="font-medium">{stats.completedProjects}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 rounded-full bg-red-500" />
-                    <span className="text-sm">{t("projects.status.overdue")}</span>
+                </Link>
+                <Link href="/projects?filter=overdue" data-testid="link-status-overdue">
+                  <div className="flex items-center justify-between p-2 rounded-lg hover-elevate cursor-pointer transition-all">
+                    <div className="flex items-center gap-2">
+                      <div className="h-3 w-3 rounded-full bg-red-500" />
+                      <span className="text-sm">{t("projects.status.overdue")}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{stats.overdueProjects}</span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
                   </div>
-                  <span className="font-medium">{stats.overdueProjects}</span>
-                </div>
+                </Link>
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
@@ -166,20 +207,24 @@ export default function Dashboard() {
             ) : projects && projects.length > 0 ? (
               <div className="space-y-3">
                 {projects.slice(0, 5).map((project) => (
-                  <div
+                  <Link
                     key={project.id}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
+                    href={`/projects/${project.id}`}
+                    data-testid={`link-activity-${project.id}`}
                   >
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <BarChart3 className="h-4 w-4 text-primary" />
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover-elevate cursor-pointer transition-all">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <BarChart3 className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{project.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {project.createdAt ? new Date(project.createdAt).toLocaleDateString() : ""}
+                        </p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{project.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {project.createdAt ? new Date(project.createdAt).toLocaleDateString() : ""}
-                      </p>
-                    </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             ) : (
