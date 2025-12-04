@@ -964,10 +964,13 @@ export async function registerRoutes(
         return res.status(400).json({ message: fileTypeValidation.message });
       }
       
+      // Normalize the file URL to use /objects/ path for proper access
+      const normalizedFileUrl = objectStorageService.normalizeObjectEntityPath(validatedData.fileUrl);
+      
       const file = await storage.createStageFile({
         stageId: req.params.id,
         fileName: validatedData.fileName,
-        fileUrl: validatedData.fileUrl,
+        fileUrl: normalizedFileUrl,
         fileType: validatedData.fileType || null,
         fileSize: validatedData.fileSize || null,
         uploadedById: authUser.id,
