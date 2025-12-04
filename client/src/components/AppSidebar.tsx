@@ -77,7 +77,7 @@ export function AppSidebar() {
     },
   ];
 
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin" || user?.role === "superadmin";
   const userInitials = user
     ? `${user.firstName?.charAt(0) || ""}${user.lastName?.charAt(0) || ""}`.toUpperCase() ||
       user.email?.charAt(0).toUpperCase() ||
