@@ -553,46 +553,27 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    // Get status history only for stages belonging to this company's projects
-    const companyStageIds = new Set<string>();
-    for (const project of allProjects) {
-      const projectStages = await db
-        .select({ id: stages.id })
-        .from(stages)
-        .where(eq(stages.projectId, project.id));
-      for (const stage of projectStages) {
-        companyStageIds.add(stage.id);
-      }
-    }
-
-    const allStatusHistory = await db
-      .select()
-      .from(statusHistory)
-      .orderBy(asc(statusHistory.createdAt));
-
-    // Filter to only company stages
-    const companyStatusHistory = allStatusHistory.filter(
-      (record) => companyStageIds.has(record.stageId)
-    );
-
+    // Calculate average stage duration from completed stages with start and deadline dates
     let totalDuration = 0;
     let completedStagesCount = 0;
 
-    const stageStartTimes: Record<string, Date> = {};
-    for (const record of companyStatusHistory) {
-      if (record.newStatus === "in_progress" && !stageStartTimes[record.stageId]) {
-        stageStartTimes[record.stageId] = record.createdAt!;
-      }
-      if (
-        record.newStatus === "completed" &&
-        stageStartTimes[record.stageId]
-      ) {
-        const duration =
-          (record.createdAt!.getTime() - stageStartTimes[record.stageId].getTime()) /
-          (1000 * 60 * 60 * 24);
-        totalDuration += duration;
-        completedStagesCount++;
-        delete stageStartTimes[record.stageId];
+    for (const project of allProjects) {
+      const projectStages = await db
+        .select()
+        .from(stages)
+        .where(eq(stages.projectId, project.id));
+
+      for (const stage of projectStages) {
+        // Only count completed stages that have both startDate and deadline
+        if (stage.status === "completed" && stage.startDate && stage.deadline) {
+          const start = new Date(stage.startDate);
+          const end = new Date(stage.deadline);
+          const duration = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+          if (duration > 0) {
+            totalDuration += duration;
+            completedStagesCount++;
+          }
+        }
       }
     }
 
