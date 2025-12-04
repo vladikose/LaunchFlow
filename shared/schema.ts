@@ -76,6 +76,14 @@ export const products = pgTable("products", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Distribution data type for stages
+export type DistributionData = {
+  productPrices: Record<string, number>;
+  websiteDescription: string;
+  videoDescription: string;
+  mailingText: string;
+};
+
 // Custom field type for stage templates
 export type CustomField = {
   key: string;
@@ -217,6 +225,7 @@ export const stages = pgTable("stages", {
   conditionalEnabled: boolean("conditional_enabled").default(false),
   conditionalSubstagesData: jsonb("conditional_substages_data").$type<Record<string, boolean>>(),
   customFieldsData: jsonb("custom_fields_data").$type<Record<string, string>>(),
+  distributionData: jsonb("distribution_data").$type<DistributionData>(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
