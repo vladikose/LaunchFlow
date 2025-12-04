@@ -49,7 +49,8 @@ import {
   PlayCircle,
   Clock,
 } from "lucide-react";
-import type { StageWithRelations, User, StageFile, CustomField } from "@shared/schema";
+import type { StageWithRelations, User, StageFile, CustomField, DistributionData } from "@shared/schema";
+import { DistributionPrepBlock } from "./DistributionPrepBlock";
 
 interface StageCardProps {
   stage: StageWithRelations;
@@ -249,6 +250,11 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
   const checklistItems = stage.template?.checklistItems || [];
   const hasConditionalSubstages = stage.template?.hasConditionalSubstages && stage.template?.conditionalSubstages?.length;
   const conditionalSubstages = stage.template?.conditionalSubstages || [];
+  
+  const isDistributionPrep = stage.name === "Distribution Preparation" || 
+    stage.template?.name === "Distribution Preparation" ||
+    stage.template?.nameRu === "Подготовка к рассылке" ||
+    stage.template?.nameRu === "Подготовка к дистрибуции";
 
   const getFilesForChecklistItem = (itemKey: string) => {
     return (stage.files || []).filter(f => f.checklistItemKey === itemKey);
@@ -789,6 +795,14 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
                     ))}
                   </div>
                 </div>
+              )}
+
+              {isDistributionPrep && (
+                <DistributionPrepBlock
+                  stageId={stage.id}
+                  projectId={projectId}
+                  distributionData={stage.distributionData as DistributionData | null}
+                />
               )}
 
               <div className="grid md:grid-cols-2 gap-6">
