@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useSearch } from "wouter";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Plus,
   Search,
   FolderKanban,
@@ -24,9 +34,12 @@ import {
   AlertTriangle,
   Image as ImageIcon,
   LayoutGrid,
+  Trash2,
 } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Project } from "@shared/schema";
 
 type ProjectWithExtras = Project & {
@@ -40,6 +53,7 @@ type FilterType = "all" | "my" | "overdue" | "active" | "completed";
 export default function Projects() {
   const { t } = useTranslation();
   const { user: currentUser } = useAuth();
+  const { toast } = useToast();
   const searchString = useSearch();
   const urlParams = new URLSearchParams(searchString);
   const urlFilter = urlParams.get("filter") as FilterType | null;
@@ -50,6 +64,45 @@ export default function Projects() {
     const saved = localStorage.getItem("projectsColumns");
     return saved ? parseInt(saved, 10) : 4;
   });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<ProjectWithExtras | null>(null);
+  
+  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "superadmin";
+  
+  const deleteProjectMutation = useMutation({
+    mutationFn: async (projectId: string) => {
+      await apiRequest("DELETE", `/api/projects/${projectId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      toast({
+        title: t("projects.deleteSuccess"),
+        description: t("projects.deleteSuccessDescription"),
+      });
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
+    },
+    onError: () => {
+      toast({
+        title: t("common.error"),
+        description: t("projects.deleteError"),
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const handleDeleteClick = (e: React.MouseEvent, project: ProjectWithExtras) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setProjectToDelete(project);
+    setDeleteDialogOpen(true);
+  };
+  
+  const confirmDelete = () => {
+    if (projectToDelete) {
+      deleteProjectMutation.mutate(projectToDelete.id);
+    }
+  };
   
   useEffect(() => {
     if (urlFilter && ["all", "my", "overdue", "active", "completed"].includes(urlFilter)) {
@@ -229,11 +282,24 @@ export default function Projects() {
                     <div className="flex-1 p-3 flex flex-col justify-between min-w-0">
                       <div className="flex items-start justify-between gap-1 mb-1">
                         <h3 className="font-semibold text-sm truncate flex-1">{project.name}</h3>
-                        {overdue && (
-                          <Badge variant="destructive" className="flex-shrink-0 text-xs px-1 py-0">
-                            <AlertTriangle className="h-3 w-3" />
-                          </Badge>
-                        )}
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {overdue && (
+                            <Badge variant="destructive" className="text-xs px-1 py-0">
+                              <AlertTriangle className="h-3 w-3" />
+                            </Badge>
+                          )}
+                          {isAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                              onClick={(e) => handleDeleteClick(e, project)}
+                              data-testid={`button-delete-project-${project.id}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2 mb-2">
                         <Progress value={progress} className="h-1.5 flex-1" />
@@ -277,6 +343,29 @@ export default function Projects() {
           </CardContent>
         </Card>
       )}
+      
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("projects.deleteConfirmTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("projects.deleteConfirmDescription", { name: projectToDelete?.name })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">
+              {t("common.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete"
+            >
+              {deleteProjectMutation.isPending ? t("common.deleting") : t("common.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

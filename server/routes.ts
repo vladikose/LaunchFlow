@@ -769,6 +769,21 @@ export async function registerRoutes(
       if (!authUser) {
         return res.status(401).json({ message: "Unauthorized" });
       }
+      
+      const currentUser = await storage.getUser(authUser.id);
+      if (currentUser?.role !== "admin" && currentUser?.role !== "superadmin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      const project = await storage.getProjectById(req.params.id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      if (currentUser.role !== "superadmin" && project.companyId !== currentUser.companyId) {
+        return res.status(403).json({ message: "Access denied to this project" });
+      }
+      
       await storage.deleteProject(req.params.id);
       res.status(204).send();
     } catch (error) {
