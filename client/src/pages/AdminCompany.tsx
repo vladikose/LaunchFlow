@@ -454,15 +454,15 @@ export default function AdminCompany() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {usersLoading ? (
+          {usersLoading || companyLoading ? (
             <div className="space-y-2">
               <Skeleton className="h-16 w-full" />
               <Skeleton className="h-16 w-full" />
               <Skeleton className="h-16 w-full" />
             </div>
-          ) : users && users.length > 0 ? (
+          ) : users && company && users.filter(u => u.companyId === company.id).length > 0 ? (
             <div className="space-y-2">
-              {users.map((user) => (
+              {users.filter(u => u.companyId === company.id).map((user) => (
                 <div 
                   key={user.id} 
                   className="flex items-center justify-between p-3 border rounded-md"
