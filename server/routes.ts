@@ -182,20 +182,36 @@ async function ensureStageTemplates(companyId: string): Promise<void> {
   }
 }
 
-async function ensureUserCompany(userId: string): Promise<string> {
+async function ensureUserCompany(userId: string): Promise<string | null> {
   const user = await storage.getUser(userId);
   if (user?.companyId) {
-    // Ensure existing company has stage templates
     await ensureStageTemplates(user.companyId);
     return user.companyId;
   }
-  const company = await storage.createCompany({ name: "My Company" });
-  await storage.updateUser(userId, { companyId: company.id, role: "admin" });
-  
-  // Seed default stage templates for the new company
-  await ensureStageTemplates(company.id);
-  
-  return company.id;
+  return null;
+}
+
+class NoCompanyError extends Error {
+  constructor() {
+    super("User has no company");
+    this.name = "NoCompanyError";
+  }
+}
+
+async function requireUserCompany(userId: string): Promise<string> {
+  const companyId = await ensureUserCompany(userId);
+  if (!companyId) {
+    throw new NoCompanyError();
+  }
+  return companyId;
+}
+
+function handleRouteError(error: unknown, res: Response, context: string): Response {
+  if (error instanceof NoCompanyError) {
+    return res.status(403).json({ message: "Please complete onboarding first", code: "NO_COMPANY" });
+  }
+  console.error(`Error ${context}:`, error);
+  return res.status(500).json({ message: "Internal server error" });
 }
 
 export async function registerRoutes(
@@ -239,12 +255,11 @@ export async function registerRoutes(
       if (!authUser) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      const companyId = await ensureUserCompany(authUser.id);
+      const companyId = await requireUserCompany(authUser.id);
       const usersWithStats = await storage.getUsersWithStats(companyId);
       res.json(usersWithStats);
     } catch (error) {
-      console.error("Error getting users with stats:", error);
-      res.status(500).json({ message: "Internal server error" });
+      handleRouteError(error, res, "getting users with stats");
     }
   });
 
@@ -293,6 +308,37 @@ export async function registerRoutes(
     }
   });
 
+  // Create new company (for onboarding)
+  app.post("/api/companies", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const user = await storage.getUser(authUser.id);
+      if (user?.companyId) {
+        return res.status(400).json({ message: "User already belongs to a company" });
+      }
+      
+      const { name } = req.body;
+      if (!name || typeof name !== "string" || name.trim().length === 0) {
+        return res.status(400).json({ message: "Company name is required" });
+      }
+      
+      const company = await storage.createCompany({ name: name.trim() });
+      await storage.updateUser(authUser.id, { companyId: company.id, role: "admin" });
+      
+      await ensureStageTemplates(company.id);
+      
+      const updatedUser = await storage.getUser(authUser.id);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error creating company:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Get current company info
   app.get("/api/company", isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -300,12 +346,11 @@ export async function registerRoutes(
       if (!authUser) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      const companyId = await ensureUserCompany(authUser.id);
+      const companyId = await requireUserCompany(authUser.id);
       const company = await storage.getCompanyById(companyId);
       res.json(company);
     } catch (error) {
-      console.error("Error getting company:", error);
-      res.status(500).json({ message: "Internal server error" });
+      handleRouteError(error, res, "getting company");
     }
   });
 
@@ -320,7 +365,7 @@ export async function registerRoutes(
       if (currentUser?.role !== "admin") {
         return res.status(403).json({ message: "Admin access required" });
       }
-      const companyId = await ensureUserCompany(authUser.id);
+      const companyId = await requireUserCompany(authUser.id);
       const { name, logoUrl } = req.body;
       const updateData: Record<string, any> = {};
       if (name !== undefined) updateData.name = name;
@@ -329,8 +374,7 @@ export async function registerRoutes(
       const company = await storage.updateCompany(companyId, updateData);
       res.json(company);
     } catch (error) {
-      console.error("Error updating company:", error);
-      res.status(500).json({ message: "Internal server error" });
+      handleRouteError(error, res, "updating company");
     }
   });
 
@@ -345,7 +389,7 @@ export async function registerRoutes(
       if (currentUser?.role !== "admin") {
         return res.status(403).json({ message: "Admin access required" });
       }
-      const companyId = await ensureUserCompany(authUser.id);
+      const companyId = await requireUserCompany(authUser.id);
       const { email, role, maxUses } = req.body;
       
       // Generate a unique token
@@ -367,8 +411,7 @@ export async function registerRoutes(
       
       res.json(invite);
     } catch (error) {
-      console.error("Error creating invite:", error);
-      res.status(500).json({ message: "Internal server error" });
+      handleRouteError(error, res, "creating invite");
     }
   });
 
@@ -383,12 +426,11 @@ export async function registerRoutes(
       if (currentUser?.role !== "admin") {
         return res.status(403).json({ message: "Admin access required" });
       }
-      const companyId = await ensureUserCompany(authUser.id);
+      const companyId = await requireUserCompany(authUser.id);
       const invites = await storage.getCompanyInvitesByCompany(companyId);
       res.json(invites);
     } catch (error) {
-      console.error("Error getting invites:", error);
-      res.status(500).json({ message: "Internal server error" });
+      handleRouteError(error, res, "getting invites");
     }
   });
 
@@ -520,12 +562,11 @@ export async function registerRoutes(
       if (!authUser) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      const companyId = await ensureUserCompany(authUser.id);
+      const companyId = await requireUserCompany(authUser.id);
       const stats = await storage.getDashboardStats(companyId, authUser.id);
       res.json(stats);
     } catch (error) {
-      console.error("Error getting dashboard stats:", error);
-      res.status(500).json({ message: "Internal server error" });
+      handleRouteError(error, res, "getting dashboard stats");
     }
   });
 
@@ -535,12 +576,11 @@ export async function registerRoutes(
       if (!authUser) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      const companyId = await ensureUserCompany(authUser.id);
+      const companyId = await requireUserCompany(authUser.id);
       const projects = await storage.getProjectsWithStageStatus(companyId);
       res.json(projects);
     } catch (error) {
-      console.error("Error getting projects:", error);
-      res.status(500).json({ message: "Internal server error" });
+      handleRouteError(error, res, "getting projects");
     }
   });
 
@@ -581,7 +621,7 @@ export async function registerRoutes(
       if (!authUser) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      const companyId = await ensureUserCompany(authUser.id);
+      const companyId = await requireUserCompany(authUser.id);
       
       const validatedData = createProjectSchema.parse(req.body);
       
@@ -628,8 +668,7 @@ export async function registerRoutes(
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
-      console.error("Error creating project:", error);
-      res.status(500).json({ message: "Internal server error" });
+      handleRouteError(error, res, "creating project");
     }
   });
 
@@ -1025,12 +1064,11 @@ export async function registerRoutes(
       if (!authUser) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      const companyId = await ensureUserCompany(authUser.id);
+      const companyId = await requireUserCompany(authUser.id);
       const templates = await storage.getStageTemplatesByCompany(companyId);
       res.json(templates);
     } catch (error) {
-      console.error("Error getting stage templates:", error);
-      res.status(500).json({ message: "Internal server error" });
+      handleRouteError(error, res, "getting stage templates");
     }
   });
 
@@ -1069,7 +1107,7 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Admin access required" });
       }
       
-      const companyId = await ensureUserCompany(authUser.id);
+      const companyId = await requireUserCompany(authUser.id);
       const validatedData = createTemplateSchema.parse(req.body);
       
       // Get existing templates to determine position if not provided
@@ -1096,8 +1134,7 @@ export async function registerRoutes(
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
-      console.error("Error creating stage template:", error);
-      res.status(500).json({ message: "Internal server error" });
+      handleRouteError(error, res, "creating stage template");
     }
   });
 

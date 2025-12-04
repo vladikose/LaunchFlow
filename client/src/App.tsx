@@ -16,11 +16,12 @@ import AdminStages from "@/pages/AdminStages";
 import AdminCompany from "@/pages/AdminCompany";
 import Settings from "@/pages/Settings";
 import Invite from "@/pages/Invite";
+import Onboarding from "@/pages/Onboarding";
 import NotFound from "@/pages/not-found";
 import "@/i18n";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -39,6 +40,15 @@ function Router() {
         <Route path="/" component={Landing} />
         <Route path="/invite/:token" component={Invite} />
         <Route component={Landing} />
+      </Switch>
+    );
+  }
+
+  if (!user?.companyId) {
+    return (
+      <Switch>
+        <Route path="/invite/:token" component={Invite} />
+        <Route component={Onboarding} />
       </Switch>
     );
   }
