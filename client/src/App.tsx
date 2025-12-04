@@ -25,7 +25,7 @@ function Router() {
 
   if (isLoading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center">
+      <div key="loading" className="h-screen w-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           <p className="text-muted-foreground">Loading...</p>
@@ -36,41 +36,47 @@ function Router() {
 
   if (!isAuthenticated) {
     return (
-      <Switch>
-        <Route path="/" component={Landing} />
-        <Route path="/invite/:token" component={Invite} />
-        <Route component={Landing} />
-      </Switch>
+      <div key="unauthenticated">
+        <Switch>
+          <Route path="/" component={Landing} />
+          <Route path="/invite/:token" component={Invite} />
+          <Route component={Landing} />
+        </Switch>
+      </div>
     );
   }
 
   if (!user?.companyId) {
     return (
-      <Switch>
-        <Route path="/invite/:token" component={Invite} />
-        <Route component={Onboarding} />
-      </Switch>
+      <div key="no-company">
+        <Switch>
+          <Route path="/invite/:token" component={Invite} />
+          <Route component={Onboarding} />
+        </Switch>
+      </div>
     );
   }
 
   return (
-    <AppLayout>
-      <Switch>
-        <Route path="/" component={Dashboard} />
-        <Route path="/dashboard" component={Dashboard} />
-        <Route path="/projects" component={Projects} />
-        <Route path="/projects/new" component={ProjectForm} />
-        <Route path="/projects/:id/edit" component={ProjectForm} />
-        <Route path="/projects/:id" component={ProjectDetail} />
-        <Route path="/tasks" component={Tasks} />
-        <Route path="/admin/users" component={AdminUsers} />
-        <Route path="/admin/stages" component={AdminStages} />
-        <Route path="/admin/company" component={AdminCompany} />
-        <Route path="/settings" component={Settings} />
-        <Route path="/invite/:token" component={Invite} />
-        <Route component={NotFound} />
-      </Switch>
-    </AppLayout>
+    <div key="authenticated">
+      <AppLayout>
+        <Switch>
+          <Route path="/" component={Dashboard} />
+          <Route path="/dashboard" component={Dashboard} />
+          <Route path="/projects" component={Projects} />
+          <Route path="/projects/new" component={ProjectForm} />
+          <Route path="/projects/:id/edit" component={ProjectForm} />
+          <Route path="/projects/:id" component={ProjectDetail} />
+          <Route path="/tasks" component={Tasks} />
+          <Route path="/admin/users" component={AdminUsers} />
+          <Route path="/admin/stages" component={AdminStages} />
+          <Route path="/admin/company" component={AdminCompany} />
+          <Route path="/settings" component={Settings} />
+          <Route path="/invite/:token" component={Invite} />
+          <Route component={NotFound} />
+        </Switch>
+      </AppLayout>
+    </div>
   );
 }
 
