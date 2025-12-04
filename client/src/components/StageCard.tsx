@@ -386,12 +386,20 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
     return user.email?.[0]?.toUpperCase() || "?";
   };
 
+  const getDateLocale = () => {
+    const lang = i18n.language.substring(0, 2);
+    if (lang === "ru") return "ru-RU";
+    if (lang === "zh") return "zh-CN";
+    return "en-US";
+  };
+
   const formatDateRange = () => {
     const start = stage.startDate ? new Date(stage.startDate) : null;
     const end = stage.deadline ? new Date(stage.deadline) : null;
+    const locale = getDateLocale();
     
     const formatShort = (d: Date) => {
-      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      return d.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
     };
     
     if (start && end) {
@@ -407,7 +415,8 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
   const formatFullDate = (date: string | Date | null) => {
     if (!date) return "-";
     const d = typeof date === "string" ? new Date(date) : date;
-    return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+    const locale = getDateLocale();
+    return d.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
   };
 
   const getStageName = () => {
@@ -805,7 +814,7 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
                             <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                               <span>{getUserName(comment.userId) || "Unknown"}</span>
                               <span>·</span>
-                              <span>{comment.createdAt ? new Date(comment.createdAt).toLocaleDateString() : ""}</span>
+                              <span>{comment.createdAt ? formatFullDate(comment.createdAt) : ""}</span>
                             </div>
                           </div>
                         </div>
@@ -926,7 +935,7 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
                             <strong>{t(`stages.status.${record.newStatus}`)}</strong>
                           </span>
                           <span className="text-muted-foreground ml-auto">
-                            {new Date(record.createdAt).toLocaleDateString()}
+                            {formatFullDate(record.createdAt)}
                           </span>
                         </div>
                       ))}
@@ -944,12 +953,12 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
                           <span>
                             {record.changedBy?.firstName || record.changedBy?.email || "Unknown"}{" "}
                             {t("stages.changedDeadlineFrom")}{" "}
-                            <strong>{record.oldDeadline ? new Date(record.oldDeadline).toLocaleDateString() : t("stages.notSet")}</strong>{" "}
+                            <strong>{record.oldDeadline ? formatFullDate(record.oldDeadline) : t("stages.notSet")}</strong>{" "}
                             {t("common.to")}{" "}
-                            <strong>{record.newDeadline ? new Date(record.newDeadline).toLocaleDateString() : t("stages.notSet")}</strong>
+                            <strong>{record.newDeadline ? formatFullDate(record.newDeadline) : t("stages.notSet")}</strong>
                           </span>
                           <span className="text-muted-foreground ml-auto">
-                            {new Date(record.createdAt).toLocaleDateString()}
+                            {formatFullDate(record.createdAt)}
                           </span>
                         </div>
                       ))}
