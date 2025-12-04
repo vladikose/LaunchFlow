@@ -79,6 +79,8 @@ const resources = {
         estLaunch: "Est. Launch",
         daysRemaining: "Days Remaining",
         developmentStages: "Development Stages",
+        selectCoverImage: "Select Cover Image",
+        coverImageUpdated: "Cover image updated",
         collapseAll: "Collapse All",
         expandAll: "Expand All",
         status: {
@@ -393,6 +395,8 @@ const resources = {
         estLaunch: "План. запуск",
         daysRemaining: "Дней осталось",
         developmentStages: "Этапы разработки",
+        selectCoverImage: "Выбрать обложку",
+        coverImageUpdated: "Обложка обновлена",
         collapseAll: "Свернуть все",
         expandAll: "Развернуть все",
         status: {
@@ -707,6 +711,8 @@ const resources = {
         estLaunch: "预计上市",
         daysRemaining: "剩余天数",
         developmentStages: "开发阶段",
+        selectCoverImage: "选择封面图片",
+        coverImageUpdated: "封面图片已更新",
         collapseAll: "全部折叠",
         expandAll: "全部展开",
         status: {

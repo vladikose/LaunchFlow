@@ -7,6 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { StageCard } from "@/components/StageCard";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -17,8 +23,10 @@ import {
   Layers,
   ChevronDown,
   ChevronUp,
+  ImageIcon,
+  Check,
 } from "lucide-react";
-import type { Project, Product, User as UserType, StageWithRelations } from "@shared/schema";
+import type { Project, Product, User as UserType, StageWithRelations, StageFile } from "@shared/schema";
 
 interface ProjectWithDetails extends Project {
   products?: Product[];
@@ -34,6 +42,7 @@ export default function ProjectDetail() {
   const { toast } = useToast();
   const [allExpanded, setAllExpanded] = useState(false);
   const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set());
+  const [imagePickerOpen, setImagePickerOpen] = useState(false);
 
   const { data: project, isLoading } = useQuery<ProjectWithDetails>({
     queryKey: ["/api/projects", projectId],
@@ -41,6 +50,20 @@ export default function ProjectDetail() {
 
   const { data: users } = useQuery<UserType[]>({
     queryKey: ["/api/users"],
+  });
+
+  const updateCoverImageMutation = useMutation({
+    mutationFn: async (coverImageId: string | null) => {
+      return apiRequest("PATCH", `/api/projects/${projectId}`, { coverImageId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      setImagePickerOpen(false);
+      toast({ title: t("projects.coverImageUpdated") || "Cover image updated" });
+    },
+    onError: (error: Error) => {
+      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+    },
   });
 
   const generateStagesMutation = useMutation({
@@ -117,6 +140,43 @@ export default function ProjectDetail() {
   const daysRemaining = calculateDaysRemaining();
   const startDate = getEarliestStartDate();
 
+  const getRenderImages = (): StageFile[] => {
+    if (!project?.stages) return [];
+    const renderStage = project.stages.find(
+      s => s.name === "Render" || s.name === "Рендер" || s.position === 1
+    );
+    if (!renderStage?.files) return [];
+    return renderStage.files.filter(f => {
+      const ext = f.fileName?.toLowerCase().split('.').pop() || '';
+      return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'].includes(ext);
+    });
+  };
+
+  const renderImages = getRenderImages();
+  
+  const normalizeObjectId = (url: string | null | undefined): string | null => {
+    if (!url) return null;
+    if (url.startsWith('/objects/')) {
+      return url.replace('/objects/', '');
+    }
+    if (url.includes('storage.googleapis.com')) {
+      const parts = url.split('/');
+      return parts[parts.length - 1];
+    }
+    return url;
+  };
+  
+  const getImageSrc = (idOrUrl: string): string => {
+    if (idOrUrl.startsWith('/objects/') || idOrUrl.startsWith('http')) {
+      return idOrUrl;
+    }
+    return `/objects/${idOrUrl}`;
+  };
+  
+  const normalizedCoverImageId = normalizeObjectId(project?.coverImageId);
+  const firstRenderImageId = renderImages.length > 0 ? normalizeObjectId(renderImages[0].fileUrl) : null;
+  const currentCoverImageId = normalizedCoverImageId || firstRenderImageId;
+
   if (isLoading) {
     return (
       <div className="p-6 space-y-6">
@@ -172,19 +232,71 @@ export default function ProjectDetail() {
 
       <div className="flex flex-col lg:flex-row gap-6">
         <div className="flex-1 flex gap-6">
-          <div className="h-32 w-32 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 overflow-hidden">
-            {project.coverImageId ? (
-              <img
-                src={`/objects/${project.coverImageId}`}
-                alt={project.name}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <div className="h-16 w-16 rounded-full bg-muted-foreground/20 flex items-center justify-center">
-                <Layers className="h-8 w-8 text-muted-foreground" />
-              </div>
+          <Popover open={imagePickerOpen} onOpenChange={setImagePickerOpen}>
+            <PopoverTrigger asChild>
+              <button
+                className="h-32 w-32 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 overflow-hidden cursor-pointer hover-elevate relative group"
+                data-testid="button-select-cover-image"
+              >
+                {currentCoverImageId ? (
+                  <>
+                    <img
+                      src={getImageSrc(currentCoverImageId)}
+                      alt={project.name}
+                      className="h-full w-full object-cover"
+                    />
+                    {renderImages.length > 1 && (
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <ImageIcon className="h-6 w-6 text-white" />
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="h-16 w-16 rounded-full bg-muted-foreground/20 flex items-center justify-center">
+                    <Layers className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                )}
+              </button>
+            </PopoverTrigger>
+            {renderImages.length > 0 && (
+              <PopoverContent className="w-80 p-3" align="start">
+                <div className="space-y-3">
+                  <h4 className="font-medium text-sm">{t("projects.selectCoverImage") || "Select Cover Image"}</h4>
+                  <ScrollArea className="h-48">
+                    <div className="grid grid-cols-3 gap-2">
+                      {renderImages.map((file) => {
+                        const objectId = normalizeObjectId(file.fileUrl);
+                        if (!objectId) return null;
+                        return (
+                          <button
+                            key={file.id}
+                            onClick={() => updateCoverImageMutation.mutate(objectId)}
+                            className={`relative aspect-square rounded-md overflow-hidden border-2 transition-colors ${
+                              currentCoverImageId === objectId
+                                ? "border-primary"
+                                : "border-transparent hover:border-muted-foreground/50"
+                            }`}
+                            data-testid={`button-cover-image-${file.id}`}
+                          >
+                            <img
+                              src={getImageSrc(objectId)}
+                              alt={file.fileName || "Render image"}
+                              className="h-full w-full object-cover"
+                            />
+                            {currentCoverImageId === objectId && (
+                              <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                <Check className="h-5 w-5 text-primary" />
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </PopoverContent>
             )}
-          </div>
+          </Popover>
           
           <div className="flex-1 space-y-3">
             <h1 className="text-2xl font-semibold" data-testid="text-project-name">{project.name}</h1>
