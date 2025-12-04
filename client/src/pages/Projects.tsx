@@ -188,8 +188,8 @@ export default function Projects() {
         <div className={`grid gap-3 ${getGridClass()}`}>
           {Array.from({ length: columns * 2 }).map((_, i) => (
             <Card key={i}>
-              <CardContent className="p-0 flex">
-                <Skeleton className="w-24 h-24 rounded-l-xl flex-shrink-0" />
+              <CardContent className="p-0 flex h-28">
+                <Skeleton className="w-24 h-28 rounded-l-xl flex-shrink-0" />
                 <div className="flex-1 p-3 space-y-2">
                   <Skeleton className="h-4 w-3/4" />
                   <Skeleton className="h-1.5 w-full" />
@@ -214,8 +214,8 @@ export default function Projects() {
                   }`}
                   data-testid={`card-project-${project.id}`}
                 >
-                  <CardContent className="p-0 flex">
-                    <div className="w-24 flex-shrink-0 bg-muted flex items-center justify-center overflow-hidden rounded-l-xl">
+                  <CardContent className="p-0 flex h-28">
+                    <div className="w-24 h-28 flex-shrink-0 bg-muted flex items-center justify-center overflow-hidden rounded-l-xl">
                       {imageSrc ? (
                         <img
                           src={imageSrc}
