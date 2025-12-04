@@ -17,8 +17,19 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -30,8 +41,11 @@ import {
   Key,
   Clock,
   FolderCheck,
+  Trash2,
+  Building2,
 } from "lucide-react";
 import type { User } from "@shared/schema";
+import { useState } from "react";
 
 interface UserWithStats extends User {
   projectCount: number;
@@ -42,6 +56,16 @@ interface UserWithStats extends User {
 export default function AdminUsers() {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserWithStats | null>(null);
+  const [deleteType, setDeleteType] = useState<"remove" | "delete">("remove");
+
+  // Get current user to check if superadmin
+  const { data: currentUser } = useQuery<User>({
+    queryKey: ["/api/auth/user"],
+  });
+
+  const isSuperadmin = currentUser?.role === "superadmin";
 
   const { data: users, isLoading } = useQuery<UserWithStats[]>({
     queryKey: ["/api/users/stats"],
@@ -53,15 +77,70 @@ export default function AdminUsers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] });
-      toast({ title: "User role updated" });
+      toast({ title: t("admin.users.roleUpdated") });
     },
     onError: () => {
-      toast({ title: "Failed to update role", variant: "destructive" });
+      toast({ title: t("admin.users.roleUpdateFailed"), variant: "destructive" });
     },
   });
 
+  // Remove user from company (soft delete)
+  const removeFromCompanyMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      return apiRequest("DELETE", `/api/users/${userId}/company`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] });
+      toast({ title: t("admin.users.userRemoved") });
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+    },
+    onError: () => {
+      toast({ title: t("admin.users.userRemoveFailed"), variant: "destructive" });
+    },
+  });
+
+  // Full delete user (superadmin only)
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      return apiRequest("DELETE", `/api/users/${userId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] });
+      toast({ title: t("admin.users.userDeleted") });
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+    },
+    onError: () => {
+      toast({ title: t("admin.users.userDeleteFailed"), variant: "destructive" });
+    },
+  });
+
+  const handleRemoveClick = (user: UserWithStats) => {
+    setUserToDelete(user);
+    setDeleteType("remove");
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteClick = (user: UserWithStats) => {
+    setUserToDelete(user);
+    setDeleteType("delete");
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!userToDelete) return;
+    if (deleteType === "delete" && isSuperadmin) {
+      deleteUserMutation.mutate(userToDelete.id);
+    } else {
+      removeFromCompanyMutation.mutate(userToDelete.id);
+    }
+  };
+
   const getRoleBadgeVariant = (role: string | null) => {
     switch (role) {
+      case "superadmin":
+        return "default";
       case "admin":
         return "default";
       case "user":
@@ -73,15 +152,24 @@ export default function AdminUsers() {
 
   const getRoleLabel = (role: string | null) => {
     switch (role) {
+      case "superadmin":
+        return t("admin.users.roles.superadmin");
       case "admin":
-        return "Administrator";
+        return t("admin.users.roles.admin");
       case "user":
-        return "User";
+        return t("admin.users.roles.user");
       case "guest":
-        return "Guest";
+        return t("admin.users.roles.guest");
       default:
-        return "User";
+        return t("admin.users.roles.user");
     }
+  };
+
+  // Check if user can be managed (can't manage yourself or superadmins if not superadmin)
+  const canManageUser = (user: UserWithStats) => {
+    if (user.id === currentUser?.id) return false;
+    if (user.role === "superadmin" && !isSuperadmin) return false;
+    return true;
   };
 
   return (
@@ -90,7 +178,10 @@ export default function AdminUsers() {
         <div>
           <h1 className="text-3xl font-semibold">{t("admin.users.title")}</h1>
           <p className="text-muted-foreground mt-1">
-            Manage users and their roles in your company
+            {isSuperadmin 
+              ? t("admin.users.descriptionSuperadmin")
+              : t("admin.users.description")
+            }
           </p>
         </div>
         <Button data-testid="button-invite-user">
@@ -117,8 +208,11 @@ export default function AdminUsers() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User</TableHead>
+                  <TableHead>{t("admin.users.user")}</TableHead>
                   <TableHead>{t("admin.users.email")}</TableHead>
+                  {isSuperadmin && (
+                    <TableHead>{t("admin.users.company")}</TableHead>
+                  )}
                   <TableHead>{t("admin.users.role")}</TableHead>
                   <TableHead className="text-center">{t("admin.users.projects")}</TableHead>
                   <TableHead className="text-center">{t("admin.users.avgProjectTime")}</TableHead>
@@ -142,19 +236,33 @@ export default function AdminUsers() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium">
+                          <p className="font-medium" data-testid={`text-user-name-${user.id}`}>
                             {user.firstName && user.lastName
                               ? `${user.firstName} ${user.lastName}`
-                              : "No name"}
+                              : t("admin.users.noName")}
                           </p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
+                    <TableCell className="text-muted-foreground" data-testid={`text-user-email-${user.id}`}>
                       {user.email || "-"}
                     </TableCell>
+                    {isSuperadmin && (
+                      <TableCell>
+                        {user.companyId ? (
+                          <div className="flex items-center gap-1.5">
+                            <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                            <span className="text-sm truncate max-w-32" title={user.companyId}>
+                              {user.companyId.substring(0, 8)}...
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                    )}
                     <TableCell>
-                      <Badge variant={getRoleBadgeVariant(user.role)}>
+                      <Badge variant={getRoleBadgeVariant(user.role)} data-testid={`badge-role-${user.id}`}>
                         {getRoleLabel(user.role)}
                       </Badge>
                     </TableCell>
@@ -177,53 +285,74 @@ export default function AdminUsers() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            data-testid={`button-user-actions-${user.id}`}
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {user.role !== "admin" && (
-                            <DropdownMenuItem
-                              onClick={() =>
-                                updateRoleMutation.mutate({
-                                  userId: user.id,
-                                  role: "admin",
-                                })
-                              }
+                      {canManageUser(user) ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              data-testid={`button-user-actions-${user.id}`}
                             >
-                              <Shield className="h-4 w-4 mr-2" />
-                              Make Admin
-                            </DropdownMenuItem>
-                          )}
-                          {user.role === "admin" && (
-                            <DropdownMenuItem
-                              onClick={() =>
-                                updateRoleMutation.mutate({
-                                  userId: user.id,
-                                  role: "user",
-                                })
-                              }
-                            >
-                              <Users className="h-4 w-4 mr-2" />
-                              Make User
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem>
-                            <Key className="h-4 w-4 mr-2" />
-                            {t("admin.users.resetPassword")}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-600 dark:text-red-400">
-                            <UserX className="h-4 w-4 mr-2" />
-                            {t("admin.users.remove")}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {user.role !== "admin" && user.role !== "superadmin" && (
+                              <DropdownMenuItem
+                                data-testid={`button-make-admin-${user.id}`}
+                                onClick={() =>
+                                  updateRoleMutation.mutate({
+                                    userId: user.id,
+                                    role: "admin",
+                                  })
+                                }
+                              >
+                                <Shield className="h-4 w-4 mr-2" />
+                                {t("admin.users.makeAdmin")}
+                              </DropdownMenuItem>
+                            )}
+                            {user.role === "admin" && (
+                              <DropdownMenuItem
+                                data-testid={`button-make-user-${user.id}`}
+                                onClick={() =>
+                                  updateRoleMutation.mutate({
+                                    userId: user.id,
+                                    role: "user",
+                                  })
+                                }
+                              >
+                                <Users className="h-4 w-4 mr-2" />
+                                {t("admin.users.makeUser")}
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            {user.companyId && (
+                              <DropdownMenuItem 
+                                data-testid={`button-remove-user-${user.id}`}
+                                className="text-orange-600 dark:text-orange-400"
+                                onClick={() => handleRemoveClick(user)}
+                              >
+                                <UserX className="h-4 w-4 mr-2" />
+                                {t("admin.users.removeFromCompany")}
+                              </DropdownMenuItem>
+                            )}
+                            {isSuperadmin && (
+                              <DropdownMenuItem 
+                                data-testid={`button-delete-user-${user.id}`}
+                                className="text-red-600 dark:text-red-400"
+                                onClick={() => handleDeleteClick(user)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                {t("admin.users.deletePermanently")}
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">
+                          {user.id === currentUser?.id ? t("admin.users.you") : ""}
+                        </span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -232,11 +361,51 @@ export default function AdminUsers() {
           ) : (
             <div className="p-12 text-center">
               <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No users found</p>
+              <p className="text-muted-foreground">{t("admin.users.noUsers")}</p>
             </div>
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {deleteType === "delete" 
+                ? t("admin.users.deleteConfirmTitle")
+                : t("admin.users.removeConfirmTitle")
+              }
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteType === "delete" 
+                ? t("admin.users.deleteConfirmDescription", { 
+                    name: userToDelete?.firstName 
+                      ? `${userToDelete.firstName} ${userToDelete.lastName || ""}`.trim()
+                      : userToDelete?.email 
+                  })
+                : t("admin.users.removeConfirmDescription", { 
+                    name: userToDelete?.firstName 
+                      ? `${userToDelete.firstName} ${userToDelete.lastName || ""}`.trim()
+                      : userToDelete?.email 
+                  })
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete">{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              data-testid="button-confirm-delete"
+              onClick={handleConfirmDelete}
+              className={deleteType === "delete" ? "bg-red-600 hover:bg-red-700" : "bg-orange-600 hover:bg-orange-700"}
+            >
+              {deleteType === "delete" 
+                ? t("admin.users.deleteButton")
+                : t("admin.users.removeButton")
+              }
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

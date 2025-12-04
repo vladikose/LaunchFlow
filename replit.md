@@ -57,7 +57,11 @@ Preferred communication style: Simple, everyday language.
 - Passport.js with OpenID Client strategy
 - Session storage in PostgreSQL for distributed deployment support
 - User claims stored in session for quick access
-- Role-based access control (guest, user, admin)
+- Hierarchical role-based access control:
+  - **superadmin**: Global admin with access to all users across all companies, can permanently delete users
+  - **admin**: Company-level admin, can manage users within their company (add/remove from company)
+  - **user**: Standard user with project access
+  - **guest**: Users without company association
 
 **Build & Deployment:**
 - esbuild for fast server-side bundling
