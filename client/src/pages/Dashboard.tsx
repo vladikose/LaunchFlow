@@ -9,15 +9,19 @@ import {
   Clock, 
   AlertTriangle,
   TrendingUp,
-  ChevronRight
+  ChevronRight,
+  User
 } from "lucide-react";
 import type { Project } from "@shared/schema";
 
 interface DashboardStats {
-  completedProjects: number;
-  activeProjects: number;
-  overdueProjects: number;
-  avgStageDuration: number;
+  userActiveProjects: number;
+  userCompletedProjects: number;
+  userOverdueProjects: number;
+  userAvgProjectDuration: number;
+  companyActiveProjects: number;
+  companyCompletedProjects: number;
+  companyOverdueProjects: number;
 }
 
 export default function Dashboard() {
@@ -32,50 +36,49 @@ export default function Dashboard() {
   });
 
   const stats: DashboardStats = dashboardStats || {
-    completedProjects: 0,
-    activeProjects: 0,
-    overdueProjects: 0,
-    avgStageDuration: 0,
+    userActiveProjects: 0,
+    userCompletedProjects: 0,
+    userOverdueProjects: 0,
+    userAvgProjectDuration: 0,
+    companyActiveProjects: 0,
+    companyCompletedProjects: 0,
+    companyOverdueProjects: 0,
   };
   
   const isLoading = projectsLoading || statsLoading;
 
-  const statCards = [
+  const userStatCards = [
     {
-      title: t("dashboard.activeProjects"),
-      value: stats.activeProjects,
+      title: t("dashboard.myActiveProjects"),
+      value: stats.userActiveProjects,
       icon: BarChart3,
       color: "text-primary",
       bgColor: "bg-primary/10",
-      link: "/projects?filter=active",
-      testId: "card-active-projects",
+      testId: "card-user-active-projects",
     },
     {
-      title: t("dashboard.completedProjects"),
-      value: stats.completedProjects,
+      title: t("dashboard.myCompletedProjects"),
+      value: stats.userCompletedProjects,
       icon: CheckCircle2,
       color: "text-green-600 dark:text-green-400",
       bgColor: "bg-green-100 dark:bg-green-900/30",
-      link: "/projects?filter=completed",
-      testId: "card-completed-projects",
+      testId: "card-user-completed-projects",
     },
     {
-      title: t("dashboard.overdueProjects"),
-      value: stats.overdueProjects,
+      title: t("dashboard.myOverdueProjects"),
+      value: stats.userOverdueProjects,
       icon: AlertTriangle,
       color: "text-red-600 dark:text-red-400",
       bgColor: "bg-red-100 dark:bg-red-900/30",
-      link: "/projects?filter=overdue",
-      testId: "card-overdue-projects",
+      testId: "card-user-overdue-projects",
     },
     {
-      title: t("dashboard.avgStageDuration"),
-      value: `${stats.avgStageDuration}d`,
+      title: t("dashboard.myAvgProjectDuration"),
+      value: `${stats.userAvgProjectDuration}${t("common.days")}`,
       icon: Clock,
       color: "text-amber-600 dark:text-amber-400",
       bgColor: "bg-amber-100 dark:bg-amber-900/30",
-      link: null,
-      testId: "card-avg-duration",
+      testId: "card-user-avg-duration",
     },
   ];
 
@@ -85,47 +88,37 @@ export default function Dashboard() {
         <div>
           <h1 className="text-3xl font-semibold">{t("dashboard.title")}</h1>
           <p className="text-muted-foreground mt-1">
-            Overview of your product launches
+            {t("dashboard.subtitle")}
           </p>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {statCards.map((stat, index) => {
-          const cardContent = (
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">{stat.title}</p>
-                  {isLoading ? (
-                    <Skeleton className="h-8 w-16 mt-2" />
-                  ) : (
-                    <p className="text-3xl font-semibold mt-2">{stat.value}</p>
-                  )}
-                </div>
-                <div className={`h-12 w-12 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
-                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                </div>
-              </div>
-            </CardContent>
-          );
-
-          if (stat.link) {
-            return (
-              <Link key={index} href={stat.link}>
-                <Card className="hover-elevate cursor-pointer transition-all" data-testid={stat.testId}>
-                  {cardContent}
-                </Card>
-              </Link>
-            );
-          }
-
-          return (
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <User className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-medium">{t("dashboard.myStatistics")}</h2>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {userStatCards.map((stat, index) => (
             <Card key={index} data-testid={stat.testId}>
-              {cardContent}
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-muted-foreground">{stat.title}</p>
+                    {isLoading ? (
+                      <Skeleton className="h-8 w-16 mt-2" />
+                    ) : (
+                      <p className="text-3xl font-semibold mt-2">{stat.value}</p>
+                    )}
+                  </div>
+                  <div className={`h-12 w-12 rounded-lg ${stat.bgColor} flex items-center justify-center`}>
+                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                  </div>
+                </div>
+              </CardContent>
             </Card>
-          );
-        })}
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -139,52 +132,63 @@ export default function Dashboard() {
           <CardContent>
             {isLoading ? (
               <div className="space-y-3">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-8 w-3/4" />
-                <Skeleton className="h-8 w-1/2" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
               </div>
-            ) : projects && projects.length > 0 ? (
-              <div className="space-y-2">
+            ) : (
+              <div className="space-y-3">
                 <Link href="/projects?filter=active" data-testid="link-status-active">
-                  <div className="flex items-center justify-between p-2 rounded-lg hover-elevate cursor-pointer transition-all">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between p-3 rounded-lg hover-elevate cursor-pointer transition-all">
+                    <div className="flex items-center gap-3">
                       <div className="h-3 w-3 rounded-full bg-primary" />
-                      <span className="text-sm">{t("projects.status.active")}</span>
+                      <span className="text-sm font-medium">{t("projects.status.active")}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{stats.activeProjects}</span>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <span className="text-lg font-semibold">{stats.companyActiveProjects}</span>
+                        <span className="text-sm text-muted-foreground ml-2">
+                          ({t("dashboard.mine")}: {stats.userActiveProjects})
+                        </span>
+                      </div>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </div>
                 </Link>
                 <Link href="/projects?filter=completed" data-testid="link-status-completed">
-                  <div className="flex items-center justify-between p-2 rounded-lg hover-elevate cursor-pointer transition-all">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between p-3 rounded-lg hover-elevate cursor-pointer transition-all">
+                    <div className="flex items-center gap-3">
                       <div className="h-3 w-3 rounded-full bg-green-500" />
-                      <span className="text-sm">{t("projects.status.completed")}</span>
+                      <span className="text-sm font-medium">{t("projects.status.completed")}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{stats.completedProjects}</span>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <span className="text-lg font-semibold">{stats.companyCompletedProjects}</span>
+                        <span className="text-sm text-muted-foreground ml-2">
+                          ({t("dashboard.mine")}: {stats.userCompletedProjects})
+                        </span>
+                      </div>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </div>
                 </Link>
                 <Link href="/projects?filter=overdue" data-testid="link-status-overdue">
-                  <div className="flex items-center justify-between p-2 rounded-lg hover-elevate cursor-pointer transition-all">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between p-3 rounded-lg hover-elevate cursor-pointer transition-all">
+                    <div className="flex items-center gap-3">
                       <div className="h-3 w-3 rounded-full bg-red-500" />
-                      <span className="text-sm">{t("projects.status.overdue")}</span>
+                      <span className="text-sm font-medium">{t("projects.status.overdue")}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{stats.overdueProjects}</span>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <span className="text-lg font-semibold">{stats.companyOverdueProjects}</span>
+                        <span className="text-sm text-muted-foreground ml-2">
+                          ({t("dashboard.mine")}: {stats.userOverdueProjects})
+                        </span>
+                      </div>
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>
                   </div>
                 </Link>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                {t("common.noData")}
               </div>
             )}
           </CardContent>

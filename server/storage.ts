@@ -86,11 +86,16 @@ export interface IStorage {
 
   createDeadlineHistory(history: InsertDeadlineHistory): Promise<void>;
   createStatusHistory(history: InsertStatusHistory): Promise<void>;
-  getDashboardStats(companyId: string): Promise<{
-    completedProjects: number;
-    activeProjects: number;
-    overdueProjects: number;
-    avgStageDuration: number;
+  getDashboardStats(companyId: string, userId: string): Promise<{
+    // User-specific stats
+    userActiveProjects: number;
+    userCompletedProjects: number;
+    userOverdueProjects: number;
+    userAvgProjectDuration: number;
+    // Company-wide stats
+    companyActiveProjects: number;
+    companyCompletedProjects: number;
+    companyOverdueProjects: number;
   }>;
   getStatusHistoryByStage(stageId: string): Promise<any[]>;
   getDeadlineHistoryByStage(stageId: string): Promise<any[]>;
@@ -514,20 +519,34 @@ export class DatabaseStorage implements IStorage {
     await db.insert(statusHistory).values(history);
   }
 
-  async getDashboardStats(companyId: string): Promise<{
-    completedProjects: number;
-    activeProjects: number;
-    overdueProjects: number;
-    avgStageDuration: number;
+  async getDashboardStats(companyId: string, userId: string): Promise<{
+    userActiveProjects: number;
+    userCompletedProjects: number;
+    userOverdueProjects: number;
+    userAvgProjectDuration: number;
+    companyActiveProjects: number;
+    companyCompletedProjects: number;
+    companyOverdueProjects: number;
   }> {
     const allProjects = await db
       .select()
       .from(projects)
       .where(eq(projects.companyId, companyId));
 
-    let completedProjects = 0;
-    let overdueProjects = 0;
     const now = new Date();
+    
+    // Company-wide stats
+    let companyCompletedProjects = 0;
+    let companyOverdueProjects = 0;
+    
+    // User-specific stats
+    let userCompletedProjects = 0;
+    let userOverdueProjects = 0;
+    let userActiveProjects = 0;
+    
+    // For average duration calculation (user's completed projects)
+    let userTotalDuration = 0;
+    let userCompletedWithDates = 0;
 
     for (const project of allProjects) {
       const projectStages = await db
@@ -535,82 +554,76 @@ export class DatabaseStorage implements IStorage {
         .from(stages)
         .where(eq(stages.projectId, project.id));
 
-      if (projectStages.length > 0) {
-        const allCompleted = projectStages.every(
-          (s) => s.status === "completed" || s.status === "skip"
-        );
-        if (allCompleted) {
-          completedProjects++;
-        }
-      }
-
-      if (project.deadline && new Date(project.deadline) < now) {
-        const projectStages = await db
-          .select()
-          .from(stages)
-          .where(eq(stages.projectId, project.id));
-        const allDone = projectStages.every(
-          (s) => s.status === "completed" || s.status === "skip"
-        );
-        if (!allDone) {
-          overdueProjects++;
-        }
-      }
-    }
-
-    // Calculate average project completion time (from first stage start to last stage completion)
-    let totalDuration = 0;
-    let completedProjectsWithDates = 0;
-
-    for (const project of allProjects) {
-      const projectStages = await db
-        .select()
-        .from(stages)
-        .where(eq(stages.projectId, project.id));
-
-      // Check if all stages are completed
-      const allCompleted = projectStages.length > 0 && projectStages.every(
+      const isUserProject = project.responsibleUserId === userId;
+      
+      // Check if project is completed
+      const isCompleted = projectStages.length > 0 && projectStages.every(
         (s) => s.status === "completed" || s.status === "skip"
       );
-
-      if (allCompleted) {
-        // Find earliest start date and latest deadline
-        let earliestStart: Date | null = null;
-        let latestEnd: Date | null = null;
-
-        for (const stage of projectStages) {
-          if (stage.startDate) {
-            const startDate = new Date(stage.startDate);
-            if (!earliestStart || startDate < earliestStart) {
-              earliestStart = startDate;
+      
+      // Check if project is overdue (has deadline in past and not completed)
+      const isOverdue = project.deadline && new Date(project.deadline) < now && !isCompleted;
+      
+      // Update company stats
+      if (isCompleted) {
+        companyCompletedProjects++;
+      }
+      if (isOverdue) {
+        companyOverdueProjects++;
+      }
+      
+      // Update user stats
+      if (isUserProject) {
+        if (isCompleted) {
+          userCompletedProjects++;
+          
+          // Calculate duration for user's completed projects
+          let earliestStart: Date | null = null;
+          let latestEnd: Date | null = null;
+          
+          for (const stage of projectStages) {
+            if (stage.startDate) {
+              const startDate = new Date(stage.startDate);
+              if (!earliestStart || startDate < earliestStart) {
+                earliestStart = startDate;
+              }
+            }
+            if (stage.deadline) {
+              const endDate = new Date(stage.deadline);
+              if (!latestEnd || endDate > latestEnd) {
+                latestEnd = endDate;
+              }
             }
           }
-          if (stage.deadline) {
-            const endDate = new Date(stage.deadline);
-            if (!latestEnd || endDate > latestEnd) {
-              latestEnd = endDate;
+          
+          if (earliestStart && latestEnd) {
+            const duration = (latestEnd.getTime() - earliestStart.getTime()) / (1000 * 60 * 60 * 24);
+            if (duration > 0) {
+              userTotalDuration += duration;
+              userCompletedWithDates++;
             }
           }
-        }
-
-        if (earliestStart && latestEnd) {
-          const duration = (latestEnd.getTime() - earliestStart.getTime()) / (1000 * 60 * 60 * 24);
-          if (duration > 0) {
-            totalDuration += duration;
-            completedProjectsWithDates++;
-          }
+        } else if (isOverdue) {
+          userOverdueProjects++;
+        } else {
+          userActiveProjects++;
         }
       }
     }
 
-    const avgStageDuration =
-      completedProjectsWithDates > 0 ? Math.round(totalDuration / completedProjectsWithDates) : 0;
+    const companyActiveProjects = allProjects.length - companyCompletedProjects;
+    const userAvgProjectDuration = userCompletedWithDates > 0 
+      ? Math.round(userTotalDuration / userCompletedWithDates) 
+      : 0;
 
     return {
-      completedProjects,
-      activeProjects: allProjects.length - completedProjects,
-      overdueProjects,
-      avgStageDuration,
+      userActiveProjects,
+      userCompletedProjects,
+      userOverdueProjects,
+      userAvgProjectDuration,
+      companyActiveProjects,
+      companyCompletedProjects,
+      companyOverdueProjects,
     };
   }
 

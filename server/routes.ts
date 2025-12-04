@@ -274,7 +274,7 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Unauthorized" });
       }
       const companyId = await ensureUserCompany(authUser.id);
-      const stats = await storage.getDashboardStats(companyId);
+      const stats = await storage.getDashboardStats(companyId, authUser.id);
       res.json(stats);
     } catch (error) {
       console.error("Error getting dashboard stats:", error);
