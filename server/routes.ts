@@ -496,6 +496,12 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Unauthorized" });
       }
       
+      // Check if user already has a company
+      const currentUser = await storage.getUser(authUser.id);
+      if (currentUser?.companyId) {
+        return res.status(400).json({ message: "User already belongs to a company" });
+      }
+      
       const invite = await storage.getCompanyInviteByToken(req.params.token);
       if (!invite) {
         return res.status(404).json({ message: "Invite not found" });
@@ -520,6 +526,10 @@ export async function registerRoutes(
         companyId: invite.companyId,
         role: invite.role || "user",
       });
+      
+      if (!user) {
+        return res.status(500).json({ message: "Failed to update user" });
+      }
       
       res.json(user);
     } catch (error) {
