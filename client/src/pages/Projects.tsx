@@ -23,7 +23,9 @@ import {
   User,
   AlertTriangle,
   Image as ImageIcon,
+  LayoutGrid,
 } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 import { useAuth } from "@/hooks/useAuth";
 import type { Project } from "@shared/schema";
 
@@ -44,12 +46,31 @@ export default function Projects() {
   
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>(urlFilter || "all");
+  const [columns, setColumns] = useState(() => {
+    const saved = localStorage.getItem("projectsColumns");
+    return saved ? parseInt(saved, 10) : 4;
+  });
   
   useEffect(() => {
     if (urlFilter && ["all", "my", "overdue", "active", "completed"].includes(urlFilter)) {
       setFilter(urlFilter);
     }
   }, [urlFilter]);
+
+  useEffect(() => {
+    localStorage.setItem("projectsColumns", columns.toString());
+  }, [columns]);
+
+  const getGridClass = () => {
+    switch (columns) {
+      case 2: return "grid-cols-1 sm:grid-cols-2";
+      case 3: return "grid-cols-1 sm:grid-cols-2 md:grid-cols-3";
+      case 4: return "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
+      case 5: return "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5";
+      case 6: return "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6";
+      default: return "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
+    }
+  };
 
   const { data: projects, isLoading } = useQuery<ProjectWithExtras[]>({
     queryKey: ["/api/projects"],
@@ -136,6 +157,19 @@ export default function Projects() {
             data-testid="input-search-projects"
           />
         </div>
+        <div className="flex items-center gap-2 w-full sm:w-40">
+          <LayoutGrid className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <Slider
+            value={[columns]}
+            onValueChange={(value) => setColumns(value[0])}
+            min={2}
+            max={6}
+            step={1}
+            className="flex-1"
+            data-testid="slider-columns"
+          />
+          <span className="text-sm text-muted-foreground w-4">{columns}</span>
+        </div>
         <Select value={filter} onValueChange={(v) => setFilter(v as FilterType)}>
           <SelectTrigger className="w-full sm:w-48" data-testid="select-filter">
             <SelectValue />
@@ -151,8 +185,8 @@ export default function Projects() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+        <div className={`grid gap-3 ${getGridClass()}`}>
+          {Array.from({ length: columns * 2 }).map((_, i) => (
             <Card key={i}>
               <CardContent className="p-0 flex">
                 <Skeleton className="w-24 h-24 rounded-l-xl flex-shrink-0" />
@@ -167,7 +201,7 @@ export default function Projects() {
           ))}
         </div>
       ) : filteredProjects && filteredProjects.length > 0 ? (
-        <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <div className={`grid gap-3 ${getGridClass()}`}>
           {filteredProjects.map((project) => {
             const overdue = isOverdue(project);
             const progress = getProgress(project);
