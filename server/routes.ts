@@ -374,7 +374,7 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Unauthorized" });
       }
       const currentUser = await storage.getUser(authUser.id);
-      if (currentUser?.role !== "admin") {
+      if (currentUser?.role !== "admin" && currentUser?.role !== "superadmin") {
         return res.status(403).json({ message: "Admin access required" });
       }
       const companyId = await requireUserCompany(authUser.id);
@@ -398,7 +398,7 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Unauthorized" });
       }
       const currentUser = await storage.getUser(authUser.id);
-      if (currentUser?.role !== "admin") {
+      if (currentUser?.role !== "admin" && currentUser?.role !== "superadmin") {
         return res.status(403).json({ message: "Admin access required" });
       }
       const companyId = await requireUserCompany(authUser.id);
@@ -435,7 +435,7 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Unauthorized" });
       }
       const currentUser = await storage.getUser(authUser.id);
-      if (currentUser?.role !== "admin") {
+      if (currentUser?.role !== "admin" && currentUser?.role !== "superadmin") {
         return res.status(403).json({ message: "Admin access required" });
       }
       const companyId = await requireUserCompany(authUser.id);
@@ -454,7 +454,7 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Unauthorized" });
       }
       const currentUser = await storage.getUser(authUser.id);
-      if (currentUser?.role !== "admin") {
+      if (currentUser?.role !== "admin" && currentUser?.role !== "superadmin") {
         return res.status(403).json({ message: "Admin access required" });
       }
       await storage.deleteCompanyInvite(req.params.id);
