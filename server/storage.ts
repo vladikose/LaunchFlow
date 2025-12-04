@@ -655,10 +655,11 @@ export class DatabaseStorage implements IStorage {
     completedProjectCount: number;
     avgProjectDuration: number | null;
   }>> {
-    const companyUsers = await this.getUsersByCompany(companyId);
+    // Get all users (admin sees everyone)
+    const allUsers = await this.getAllUsers();
     const result = [];
 
-    for (const user of companyUsers) {
+    for (const user of allUsers) {
       // Get all projects where user is responsible
       const userProjects = await db
         .select()
