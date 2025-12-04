@@ -549,7 +549,7 @@ export async function registerRoutes(
 
   const updateDeadlineSchema = z.object({
     deadline: z.string().optional().nullable(),
-    reason: z.string().min(1, "Reason is required"),
+    reason: z.string().optional(),
   });
 
   app.patch("/api/stages/:id/deadline", isAuthenticated, async (req: Request, res: Response) => {
@@ -566,11 +566,19 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Stage not found" });
       }
 
+      // Reason is required only when changing an existing deadline
+      if (existingStage.deadline && (!validatedData.reason || validatedData.reason.trim() === '')) {
+        return res.status(400).json({ 
+          message: "Invalid data", 
+          errors: [{ path: ["reason"], message: "Reason is required when changing deadline" }] 
+        });
+      }
+
       await storage.createDeadlineHistory({
         stageId: req.params.id,
         oldDeadline: existingStage.deadline,
         newDeadline: validatedData.deadline ? new Date(validatedData.deadline) : null,
-        reason: validatedData.reason,
+        reason: validatedData.reason || "Initial deadline set",
         changedById: authUser.id,
       });
 
