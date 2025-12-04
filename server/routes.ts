@@ -231,6 +231,21 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/users/stats", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const companyId = await ensureUserCompany(authUser.id);
+      const usersWithStats = await storage.getUsersWithStats(companyId);
+      res.json(usersWithStats);
+    } catch (error) {
+      console.error("Error getting users with stats:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.patch("/api/users/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const authUser = getUser(req);

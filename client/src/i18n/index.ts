@@ -26,6 +26,7 @@ const resources = {
         upload: "Upload",
         download: "Download",
         noData: "No data available",
+        days: "d",
       },
       auth: {
         login: "Log In",
@@ -209,6 +210,8 @@ const resources = {
           role: "Role",
           email: "Email",
           name: "Name",
+          projects: "Projects",
+          avgProjectTime: "Avg. Project Time",
         },
         stageTemplates: {
           title: "Stage Templates",
@@ -343,6 +346,7 @@ const resources = {
         upload: "Загрузить",
         download: "Скачать",
         noData: "Нет данных",
+        days: "д",
       },
       auth: {
         login: "Войти",
@@ -526,6 +530,8 @@ const resources = {
           role: "Роль",
           email: "Email",
           name: "Имя",
+          projects: "Проекты",
+          avgProjectTime: "Ср. время проекта",
         },
         stageTemplates: {
           title: "Шаблоны этапов",
@@ -660,6 +666,7 @@ const resources = {
         upload: "上传",
         download: "下载",
         noData: "暂无数据",
+        days: "天",
       },
       auth: {
         login: "登录",
@@ -843,6 +850,8 @@ const resources = {
           role: "角色",
           email: "邮箱",
           name: "姓名",
+          projects: "项目",
+          avgProjectTime: "平均项目时长",
         },
         stageTemplates: {
           title: "阶段模板",

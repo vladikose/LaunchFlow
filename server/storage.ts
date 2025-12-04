@@ -94,6 +94,11 @@ export interface IStorage {
   }>;
   getStatusHistoryByStage(stageId: string): Promise<any[]>;
   getDeadlineHistoryByStage(stageId: string): Promise<any[]>;
+  getUsersWithStats(companyId: string): Promise<Array<User & { 
+    projectCount: number; 
+    completedProjectCount: number;
+    avgProjectDuration: number | null;
+  }>>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -643,6 +648,83 @@ export class DatabaseStorage implements IStorage {
       });
     }
     return historyWithUsers;
+  }
+
+  async getUsersWithStats(companyId: string): Promise<Array<User & { 
+    projectCount: number; 
+    completedProjectCount: number;
+    avgProjectDuration: number | null;
+  }>> {
+    const companyUsers = await this.getUsersByCompany(companyId);
+    const result = [];
+
+    for (const user of companyUsers) {
+      // Get all projects where user is responsible
+      const userProjects = await db
+        .select()
+        .from(projects)
+        .where(eq(projects.responsibleUserId, user.id));
+
+      let completedProjectCount = 0;
+      let totalDuration = 0;
+      let projectsWithDuration = 0;
+
+      for (const project of userProjects) {
+        const projectStages = await db
+          .select()
+          .from(stages)
+          .where(eq(stages.projectId, project.id));
+
+        // Check if all stages are completed
+        const allCompleted = projectStages.length > 0 && projectStages.every(
+          (s) => s.status === "completed" || s.status === "skip"
+        );
+
+        if (allCompleted) {
+          completedProjectCount++;
+
+          // Calculate project duration from earliest start to latest deadline
+          let earliestStart: Date | null = null;
+          let latestEnd: Date | null = null;
+
+          for (const stage of projectStages) {
+            if (stage.startDate) {
+              const startDate = new Date(stage.startDate);
+              if (!earliestStart || startDate < earliestStart) {
+                earliestStart = startDate;
+              }
+            }
+            if (stage.deadline) {
+              const endDate = new Date(stage.deadline);
+              if (!latestEnd || endDate > latestEnd) {
+                latestEnd = endDate;
+              }
+            }
+          }
+
+          if (earliestStart && latestEnd) {
+            const duration = (latestEnd.getTime() - earliestStart.getTime()) / (1000 * 60 * 60 * 24);
+            if (duration > 0) {
+              totalDuration += duration;
+              projectsWithDuration++;
+            }
+          }
+        }
+      }
+
+      const avgProjectDuration = projectsWithDuration > 0 
+        ? Math.round(totalDuration / projectsWithDuration) 
+        : null;
+
+      result.push({
+        ...user,
+        projectCount: userProjects.length,
+        completedProjectCount,
+        avgProjectDuration,
+      });
+    }
+
+    return result;
   }
 }
 

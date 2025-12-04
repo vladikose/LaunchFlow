@@ -28,15 +28,23 @@ import {
   Shield,
   UserX,
   Key,
+  Clock,
+  FolderCheck,
 } from "lucide-react";
 import type { User } from "@shared/schema";
+
+interface UserWithStats extends User {
+  projectCount: number;
+  completedProjectCount: number;
+  avgProjectDuration: number | null;
+}
 
 export default function AdminUsers() {
   const { t } = useTranslation();
   const { toast } = useToast();
 
-  const { data: users, isLoading } = useQuery<User[]>({
-    queryKey: ["/api/users"],
+  const { data: users, isLoading } = useQuery<UserWithStats[]>({
+    queryKey: ["/api/users/stats"],
   });
 
   const updateRoleMutation = useMutation({
@@ -44,7 +52,7 @@ export default function AdminUsers() {
       return apiRequest("PATCH", `/api/users/${userId}`, { role });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/users/stats"] });
       toast({ title: "User role updated" });
     },
     onError: () => {
@@ -112,6 +120,8 @@ export default function AdminUsers() {
                   <TableHead>User</TableHead>
                   <TableHead>{t("admin.users.email")}</TableHead>
                   <TableHead>{t("admin.users.role")}</TableHead>
+                  <TableHead className="text-center">{t("admin.users.projects")}</TableHead>
+                  <TableHead className="text-center">{t("admin.users.avgProjectTime")}</TableHead>
                   <TableHead className="text-right">{t("common.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -147,6 +157,24 @@ export default function AdminUsers() {
                       <Badge variant={getRoleBadgeVariant(user.role)}>
                         {getRoleLabel(user.role)}
                       </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <FolderCheck className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{user.completedProjectCount}</span>
+                        <span className="text-muted-foreground">/ {user.projectCount}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {user.avgProjectDuration !== null ? (
+                        <div className="flex items-center justify-center gap-1">
+                          <Clock className="h-4 w-4 text-amber-500" />
+                          <span className="font-medium">{user.avgProjectDuration}</span>
+                          <span className="text-muted-foreground">{t("common.days")}</span>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
