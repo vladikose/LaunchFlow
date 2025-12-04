@@ -50,7 +50,11 @@ export interface IStorage {
 
   createProject(project: InsertProject): Promise<Project>;
   getProjectsByCompany(companyId: string): Promise<Project[]>;
-  getProjectsWithStageStatus(companyId: string): Promise<(Project & { stages: Array<{ status: string }> })[]>;
+  getProjectsWithStageStatus(companyId: string): Promise<(Project & { 
+    stages: Array<{ status: string; templateId: string | null }>; 
+    coverImage: string | null;
+    responsibleUserName: string | null;
+  })[]>;
   getProjectById(id: string): Promise<ProjectWithRelations | undefined>;
   updateProject(id: string, data: Partial<Project>): Promise<Project | undefined>;
   deleteProject(id: string): Promise<void>;
@@ -165,7 +169,11 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(projects.createdAt));
   }
 
-  async getProjectsWithStageStatus(companyId: string): Promise<(Project & { stages: Array<{ status: string }> })[]> {
+  async getProjectsWithStageStatus(companyId: string): Promise<(Project & { 
+    stages: Array<{ status: string; templateId: string | null }>; 
+    coverImage: string | null;
+    responsibleUserName: string | null;
+  })[]> {
     const companyProjects = await db
       .select()
       .from(projects)
@@ -175,12 +183,57 @@ export class DatabaseStorage implements IStorage {
     const result = await Promise.all(
       companyProjects.map(async (project) => {
         const projectStages = await db
-          .select({ status: stages.status })
+          .select({ status: stages.status, id: stages.id, templateId: stages.templateId })
           .from(stages)
           .where(eq(stages.projectId, project.id));
+        
+        let coverImage: string | null = project.coverImageId || null;
+        
+        if (!coverImage) {
+          const renderTemplates = await db
+            .select({ id: stageTemplates.id })
+            .from(stageTemplates)
+            .where(and(
+              eq(stageTemplates.companyId, companyId),
+              eq(stageTemplates.name, 'Render')
+            ));
+          
+          if (renderTemplates.length > 0) {
+            const renderTemplateIds = renderTemplates.map(t => t.id);
+            const renderStage = projectStages.find(s => s.templateId && renderTemplateIds.includes(s.templateId));
+            
+            if (renderStage) {
+              const renderFiles = await db
+                .select({ fileUrl: stageFiles.fileUrl })
+                .from(stageFiles)
+                .where(eq(stageFiles.stageId, renderStage.id))
+                .limit(1);
+              
+              if (renderFiles.length > 0) {
+                coverImage = renderFiles[0].fileUrl;
+              }
+            }
+          }
+        }
+        
+        let responsibleUserName: string | null = null;
+        if (project.responsibleUserId) {
+          const [user] = await db
+            .select({ firstName: users.firstName, lastName: users.lastName, email: users.email })
+            .from(users)
+            .where(eq(users.id, project.responsibleUserId));
+          if (user) {
+            responsibleUserName = user.firstName && user.lastName 
+              ? `${user.firstName} ${user.lastName}`
+              : user.email;
+          }
+        }
+        
         return {
           ...project,
-          stages: projectStages.map(s => ({ status: s.status || 'waiting' })),
+          stages: projectStages.map(s => ({ status: s.status || 'waiting', templateId: s.templateId })),
+          coverImage,
+          responsibleUserName,
         };
       })
     );

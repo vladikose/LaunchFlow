@@ -149,6 +149,15 @@ Preferred communication style: Simple, everyday language.
 - Full multi-language support for new UI elements (EN/RU/ZH)
 - File URL normalization: server converts GCS URLs to /objects/ format
 
+### Project List View Enhancement
+- Project cards now display:
+  - Cover image thumbnail (from Render stage or coverImageId)
+  - Project name next to image
+  - Progress bar below name showing completion percentage
+  - Responsible user name and deadline date at bottom
+- API returns enhanced data including coverImage and responsibleUserName
+- Skeleton loading state matches new card layout
+
 ### Visual Block-Based Template Builder
 - New `blocks` JSONB column in stage_templates for storing block configurations
 - TemplateBuilder component with three-column layout: palette, canvas, and preview

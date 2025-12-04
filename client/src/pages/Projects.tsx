@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -21,11 +22,16 @@ import {
   Calendar,
   User,
   AlertTriangle,
-  CheckCircle2,
-  BarChart3,
+  Image as ImageIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import type { Project, User as UserType } from "@shared/schema";
+import type { Project } from "@shared/schema";
+
+type ProjectWithExtras = Project & {
+  stages: Array<{ status: string; templateId: string | null }>;
+  coverImage: string | null;
+  responsibleUserName: string | null;
+};
 
 type FilterType = "all" | "my" | "overdue" | "active" | "completed";
 
@@ -45,34 +51,35 @@ export default function Projects() {
     }
   }, [urlFilter]);
 
-  const { data: projects, isLoading } = useQuery<Project[]>({
+  const { data: projects, isLoading } = useQuery<ProjectWithExtras[]>({
     queryKey: ["/api/projects"],
   });
 
-  const { data: users } = useQuery<UserType[]>({
-    queryKey: ["/api/users"],
-  });
-
-  const getUserName = (userId: string | null | undefined) => {
-    if (!userId || !users) return null;
-    const user = users.find((u) => u.id === userId);
-    if (!user) return null;
-    return user.firstName && user.lastName
-      ? `${user.firstName} ${user.lastName}`
-      : user.email;
+  const getProgress = (project: ProjectWithExtras) => {
+    if (!project.stages || project.stages.length === 0) return 0;
+    const completed = project.stages.filter(s => s.status === 'completed').length;
+    return Math.round((completed / project.stages.length) * 100);
   };
 
-  const isOverdue = (project: Project) => {
+  const getImageSrc = (url: string | null) => {
+    if (!url) return null;
+    if (url.startsWith('/objects/')) return url;
+    const match = url.match(/\/([^/]+)$/);
+    if (match) return `/objects/${match[1]}`;
+    return url;
+  };
+
+  const isOverdue = (project: ProjectWithExtras) => {
     if (!project.deadline) return false;
     return new Date(project.deadline) < new Date();
   };
 
-  const isCompleted = (project: Project & { stages?: Array<{ status: string }> }) => {
+  const isCompleted = (project: ProjectWithExtras) => {
     if (!project.stages || project.stages.length === 0) return false;
     return project.stages.every((stage) => stage.status === "completed");
   };
 
-  const isActive = (project: Project & { stages?: Array<{ status: string }> }) => {
+  const isActive = (project: ProjectWithExtras) => {
     if (!project.stages || project.stages.length === 0) return true;
     return project.stages.some((stage) => stage.status !== "completed");
   };
@@ -147,11 +154,16 @@ export default function Projects() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card key={i}>
-              <CardHeader className="pb-3">
-                <Skeleton className="h-6 w-3/4" />
+              <CardHeader className="pb-2">
+                <div className="flex items-start gap-3">
+                  <Skeleton className="h-14 w-14 rounded-lg flex-shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-3/4" />
+                    <Skeleton className="h-1.5 w-full" />
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent>
-                <Skeleton className="h-4 w-full mb-3" />
+              <CardContent className="pt-0">
                 <Skeleton className="h-4 w-1/2" />
               </CardContent>
             </Card>
@@ -161,6 +173,8 @@ export default function Projects() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredProjects.map((project) => {
             const overdue = isOverdue(project);
+            const progress = getProgress(project);
+            const imageSrc = getImageSrc(project.coverImage);
             return (
               <Link key={project.id} href={`/projects/${project.id}`}>
                 <Card
@@ -169,34 +183,43 @@ export default function Projects() {
                   }`}
                   data-testid={`card-project-${project.id}`}
                 >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <FolderKanban className="h-4 w-4 text-primary" />
-                        </div>
-                        <h3 className="font-semibold truncate">{project.name}</h3>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start gap-3">
+                      <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {imageSrc ? (
+                          <img
+                            src={imageSrc}
+                            alt={project.name}
+                            className="h-full w-full object-contain"
+                          />
+                        ) : (
+                          <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                        )}
                       </div>
-                      {overdue && (
-                        <Badge variant="destructive" className="flex-shrink-0">
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          {t("projects.status.overdue")}
-                        </Badge>
-                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="font-semibold truncate">{project.name}</h3>
+                          {overdue && (
+                            <Badge variant="destructive" className="flex-shrink-0">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              {t("projects.status.overdue")}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                          <Progress value={progress} className="h-1.5 flex-1" />
+                          <span className="text-xs text-muted-foreground w-8">{progress}%</span>
+                        </div>
+                      </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    {project.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {project.description}
-                      </p>
-                    )}
+                  <CardContent className="pt-0">
                     <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                      {project.responsibleUserId && (
+                      {project.responsibleUserName && (
                         <div className="flex items-center gap-1">
                           <User className="h-3.5 w-3.5" />
                           <span className="truncate max-w-[120px]">
-                            {getUserName(project.responsibleUserId)}
+                            {project.responsibleUserName}
                           </span>
                         </div>
                       )}
