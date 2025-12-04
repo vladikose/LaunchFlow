@@ -15,6 +15,7 @@ import AdminUsers from "@/pages/AdminUsers";
 import AdminStages from "@/pages/AdminStages";
 import AdminCompany from "@/pages/AdminCompany";
 import Settings from "@/pages/Settings";
+import Invite from "@/pages/Invite";
 import NotFound from "@/pages/not-found";
 import "@/i18n";
 
@@ -36,6 +37,7 @@ function Router() {
     return (
       <Switch>
         <Route path="/" component={Landing} />
+        <Route path="/invite/:token" component={Invite} />
         <Route component={Landing} />
       </Switch>
     );
@@ -55,6 +57,7 @@ function Router() {
         <Route path="/admin/stages" component={AdminStages} />
         <Route path="/admin/company" component={AdminCompany} />
         <Route path="/settings" component={Settings} />
+        <Route path="/invite/:token" component={Invite} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
