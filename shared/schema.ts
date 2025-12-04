@@ -115,6 +115,11 @@ export type ChecklistItemConfig = {
   labelZh?: string;
   required?: boolean;
   acceptedFileTypes?: string[];
+  hasInput?: boolean;
+  inputLabel?: string;
+  inputLabelRu?: string;
+  inputLabelZh?: string;
+  inputPlaceholder?: string;
 };
 
 // Block configuration types
@@ -222,6 +227,7 @@ export const stages = pgTable("stages", {
   deadline: timestamp("deadline"),
   position: integer("position").notNull(),
   checklistData: jsonb("checklist_data").$type<Record<string, boolean>>(),
+  checklistInputData: jsonb("checklist_input_data").$type<Record<string, string>>(),
   conditionalEnabled: boolean("conditional_enabled").default(false),
   conditionalSubstagesData: jsonb("conditional_substages_data").$type<Record<string, boolean>>(),
   customFieldsData: jsonb("custom_fields_data").$type<Record<string, string>>(),

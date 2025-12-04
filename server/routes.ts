@@ -569,6 +569,7 @@ export async function registerRoutes(
     startDate: z.string().optional().nullable(),
     deadline: z.string().optional().nullable(),
     checklistData: z.record(z.any()).optional().nullable(),
+    checklistInputData: z.record(z.string()).optional().nullable(),
     conditionalEnabled: z.boolean().optional(),
     conditionalSubstagesData: z.record(z.any()).optional().nullable(),
     customFieldsData: z.record(z.string()).optional().nullable(),

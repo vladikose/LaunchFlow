@@ -49,7 +49,7 @@ import {
   PlayCircle,
   Clock,
 } from "lucide-react";
-import type { StageWithRelations, User, StageFile, CustomField, DistributionData } from "@shared/schema";
+import type { StageWithRelations, User, StageFile, CustomField, DistributionData, TemplateBlock, ChecklistBlockConfig, ChecklistItemConfig } from "@shared/schema";
 import { DistributionPrepBlock } from "./DistributionPrepBlock";
 
 interface StageCardProps {
@@ -84,6 +84,24 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, string>>(
     (stage.customFieldsData as Record<string, string>) || {}
   );
+  const [checklistInputValues, setChecklistInputValues] = useState<Record<string, string>>(
+    (stage.checklistInputData as Record<string, string>) || {}
+  );
+
+  const getChecklistItemConfigs = (): Map<string, ChecklistItemConfig> => {
+    const configMap = new Map<string, ChecklistItemConfig>();
+    const blocks = (stage.template?.blocks as TemplateBlock[]) || [];
+    const checklistBlock = blocks.find(b => b.type === 'checklist');
+    if (checklistBlock) {
+      const config = checklistBlock.config as ChecklistBlockConfig;
+      if (config?.items) {
+        config.items.forEach(item => configMap.set(item.key, item));
+      }
+    }
+    return configMap;
+  };
+
+  const checklistItemConfigs = getChecklistItemConfigs();
 
   const { data: historyData } = useQuery<{
     statusHistory: Array<{
@@ -193,7 +211,7 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
   });
 
   const updateChecklistMutation = useMutation({
-    mutationFn: async (data: { checklistData?: Record<string, boolean>; conditionalEnabled?: boolean; conditionalSubstagesData?: Record<string, boolean>; status?: string; customFieldsData?: Record<string, string> }) => {
+    mutationFn: async (data: { checklistData?: Record<string, boolean>; checklistInputData?: Record<string, string>; conditionalEnabled?: boolean; conditionalSubstagesData?: Record<string, boolean>; status?: string; customFieldsData?: Record<string, string> }) => {
       return apiRequest("PATCH", `/api/stages/${stage.id}`, data);
     },
     onSuccess: () => {
@@ -210,6 +228,24 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
       [itemKey]: !currentValue,
     };
     updateChecklistMutation.mutate({ checklistData: newChecklistData });
+  };
+
+  const handleChecklistInputChange = (itemKey: string, value: string) => {
+    setChecklistInputValues(prev => ({ ...prev, [itemKey]: value }));
+  };
+
+  const handleChecklistInputBlur = (itemKey: string) => {
+    const currentValue = (stage.checklistInputData as Record<string, string>)?.[itemKey] || "";
+    if (checklistInputValues[itemKey] !== currentValue) {
+      updateChecklistMutation.mutate({ checklistInputData: checklistInputValues });
+    }
+  };
+
+  const getChecklistInputLabel = (itemConfig: ChecklistItemConfig) => {
+    const lang = i18n.language.substring(0, 2);
+    if (lang === "ru" && itemConfig.inputLabelRu) return itemConfig.inputLabelRu;
+    if (lang === "zh" && itemConfig.inputLabelZh) return itemConfig.inputLabelZh;
+    return itemConfig.inputLabel || t("stages.enterValue");
   };
 
   const handleConditionalToggle = (enabled: boolean) => {
@@ -677,55 +713,71 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
                     {checklistItems.map((itemKey: string) => {
                       const isChecked = (stage.checklistData as Record<string, boolean>)?.[itemKey] || false;
                       const itemFiles = getFilesForChecklistItem(itemKey);
+                      const itemConfig = checklistItemConfigs.get(itemKey);
+                      const hasInput = itemConfig?.hasInput;
                       
                       return (
-                        <div key={itemKey} className="flex items-center gap-3 p-2 rounded hover:bg-muted/50">
-                          <Checkbox
-                            checked={isChecked}
-                            onCheckedChange={() => handleChecklistItemToggle(itemKey, isChecked)}
-                            data-testid={`checkbox-${stage.id}-${itemKey}`}
-                          />
-                          <span className={`flex-1 ${isChecked ? "line-through text-muted-foreground" : ""}`}>
-                            {getChecklistItemLabel(itemKey)}
-                          </span>
-                          {itemFiles.length > 0 && (
-                            <div className="flex items-center gap-1">
-                              {itemFiles.slice(0, 3).map((f) => (
-                                <a
-                                  key={f.id}
-                                  href={f.fileUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="p-1 hover:bg-muted rounded"
-                                >
-                                  {getFilePreviewIcon(f)}
-                                </a>
-                              ))}
-                              {itemFiles.length > 3 && (
-                                <span className="text-xs text-muted-foreground">+{itemFiles.length - 3}</span>
-                              )}
+                        <div key={itemKey} className="space-y-2">
+                          <div className="flex items-center gap-3 p-2 rounded hover:bg-muted/50">
+                            <Checkbox
+                              checked={isChecked}
+                              onCheckedChange={() => handleChecklistItemToggle(itemKey, isChecked)}
+                              data-testid={`checkbox-${stage.id}-${itemKey}`}
+                            />
+                            <span className={`flex-1 ${isChecked ? "line-through text-muted-foreground" : ""}`}>
+                              {getChecklistItemLabel(itemKey)}
+                            </span>
+                            {itemFiles.length > 0 && (
+                              <div className="flex items-center gap-1">
+                                {itemFiles.slice(0, 3).map((f) => (
+                                  <a
+                                    key={f.id}
+                                    href={f.fileUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="p-1 hover:bg-muted rounded"
+                                  >
+                                    {getFilePreviewIcon(f)}
+                                  </a>
+                                ))}
+                                {itemFiles.length > 3 && (
+                                  <span className="text-xs text-muted-foreground">+{itemFiles.length - 3}</span>
+                                )}
+                              </div>
+                            )}
+                            <label className="cursor-pointer">
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept={getAcceptedFileTypes(stage.name, itemKey)}
+                                onChange={(e) => handleFileUpload(e, itemKey)}
+                                disabled={uploadingChecklistItem === itemKey}
+                              />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 px-2"
+                                disabled={uploadingChecklistItem === itemKey}
+                                asChild
+                              >
+                                <span>
+                                  <Paperclip className="h-3.5 w-3.5" />
+                                </span>
+                              </Button>
+                            </label>
+                          </div>
+                          {hasInput && itemConfig && (
+                            <div className="pl-8">
+                              <Input
+                                placeholder={itemConfig.inputPlaceholder || getChecklistInputLabel(itemConfig)}
+                                value={checklistInputValues[itemKey] || ""}
+                                onChange={(e) => handleChecklistInputChange(itemKey, e.target.value)}
+                                onBlur={() => handleChecklistInputBlur(itemKey)}
+                                className="h-8 text-sm"
+                                data-testid={`input-${stage.id}-${itemKey}`}
+                              />
                             </div>
                           )}
-                          <label className="cursor-pointer">
-                            <input
-                              type="file"
-                              className="hidden"
-                              accept={getAcceptedFileTypes(stage.name, itemKey)}
-                              onChange={(e) => handleFileUpload(e, itemKey)}
-                              disabled={uploadingChecklistItem === itemKey}
-                            />
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 px-2"
-                              disabled={uploadingChecklistItem === itemKey}
-                              asChild
-                            >
-                              <span>
-                                <Paperclip className="h-3.5 w-3.5" />
-                              </span>
-                            </Button>
-                          </label>
                         </div>
                       );
                     })}
