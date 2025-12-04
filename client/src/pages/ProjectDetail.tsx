@@ -17,6 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { StageCard } from "@/components/StageCard";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { getObjectUrl } from "@/lib/objectStorage";
 import {
   ArrowLeft,
   Edit,
@@ -172,20 +173,6 @@ export default function ProjectDetail() {
       return idOrUrl;
     }
     return `/objects/${idOrUrl}`;
-  };
-
-  const getAvatarSrc = (url: string | null | undefined): string | undefined => {
-    if (!url) return undefined;
-    if (url.startsWith('/objects/')) {
-      return url;
-    }
-    if (url.includes('storage.googleapis.com')) {
-      const match = url.match(/\/(\.private\/uploads\/[^/]+|uploads\/[^/]+)$/);
-      if (match) {
-        return `/objects/${match[1]}`;
-      }
-    }
-    return url;
   };
   
   const normalizedCoverImageId = normalizeObjectId(project?.coverImageId);
@@ -343,7 +330,7 @@ export default function ProjectDetail() {
                 )}
               </div>
               <Avatar className="h-12 w-12" data-testid="avatar-responsible">
-                <AvatarImage src={getAvatarSrc(project.responsibleUser.profileImageUrl)} />
+                <AvatarImage src={getObjectUrl(project.responsibleUser.profileImageUrl)} />
                 <AvatarFallback>
                   {(project.responsibleUser.firstName?.charAt(0) || "") + (project.responsibleUser.lastName?.charAt(0) || "")}
                 </AvatarFallback>

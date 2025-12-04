@@ -35,6 +35,7 @@ import {
   LogOut,
   ChevronUp,
 } from "lucide-react";
+import { getObjectUrl } from "@/lib/objectStorage";
 
 export function AppSidebar() {
   const { t } = useTranslation();
@@ -153,7 +154,7 @@ export function AppSidebar() {
               data-testid="button-user-menu"
             >
               <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.profileImageUrl || undefined} className="object-cover" />
+                <AvatarImage src={getObjectUrl(user?.profileImageUrl)} className="object-cover" />
                 <AvatarFallback className="text-xs">{userInitials}</AvatarFallback>
               </Avatar>
               <div className="flex-1 text-left truncate">

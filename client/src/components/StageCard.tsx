@@ -29,6 +29,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { getObjectUrl } from "@/lib/objectStorage";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -980,7 +981,7 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
                       {stage.comments.map((comment) => (
                         <div key={comment.id} className="flex gap-3">
                           <Avatar className="h-8 w-8 flex-shrink-0">
-                            <AvatarImage src={comment.user?.profileImageUrl || undefined} />
+                            <AvatarImage src={getObjectUrl(comment.user?.profileImageUrl)} />
                             <AvatarFallback className="text-xs">
                               {getUserInitials(comment.userId)}
                             </AvatarFallback>

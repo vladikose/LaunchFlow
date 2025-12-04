@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { getObjectUrl } from "@/lib/objectStorage";
 import { 
   Building2, 
   Save, 
@@ -470,7 +471,7 @@ export default function AdminCompany() {
                 >
                   <div className="flex items-center gap-3">
                     <Avatar>
-                      <AvatarImage src={user.profileImageUrl || undefined} />
+                      <AvatarImage src={getObjectUrl(user.profileImageUrl)} />
                       <AvatarFallback>{getUserInitials(user)}</AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col">

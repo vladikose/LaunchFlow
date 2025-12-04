@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { getObjectUrl } from "@/lib/objectStorage";
 import {
   Users,
   MoreVertical,
@@ -226,7 +227,7 @@ export default function AdminUsers() {
                       <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9">
                           <AvatarImage
-                            src={user.profileImageUrl || undefined}
+                            src={getObjectUrl(user.profileImageUrl)}
                             className="object-cover"
                           />
                           <AvatarFallback className="text-xs">
