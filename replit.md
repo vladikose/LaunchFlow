@@ -132,7 +132,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Project Detail Page UI Redesign (Latest)
 - Completely redesigned project header with:
-  - Product image placeholder (rounded square)
+  - Cover image from first "Render" stage (clickable to select from available render images)
   - Project name and description
   - Progress bar showing completion percentage
   - Timeline Summary card (Start Date, Est. Launch, Days Remaining)
