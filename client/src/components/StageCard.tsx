@@ -98,6 +98,38 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
         config.items.forEach(item => configMap.set(item.key, item));
       }
     }
+    
+    if (configMap.size === 0 && stage.template?.name === 'First Shipment') {
+      const firstShipmentDefaults: ChecklistItemConfig[] = [
+        { 
+          key: 'hsCode', 
+          label: 'HS Code', 
+          labelRu: 'Код ТН ВЭД', 
+          labelZh: 'HS编码',
+          hasInput: true,
+          inputLabel: 'Enter HS Code',
+          inputLabelRu: 'Введите код ТН ВЭД',
+          inputLabelZh: '输入HS编码',
+          inputPlaceholder: '0000 00 000 0'
+        },
+        { 
+          key: 'catalogPage', 
+          label: 'Catalog Page', 
+          labelRu: 'Страница из каталога', 
+          labelZh: '目录页',
+          acceptedFileTypes: ['image/*', 'application/pdf']
+        },
+        { 
+          key: 'boxPhoto', 
+          label: 'Box Photo on Scales', 
+          labelRu: 'Фото коробки на весах', 
+          labelZh: '称重箱照片',
+          acceptedFileTypes: ['image/*']
+        }
+      ];
+      firstShipmentDefaults.forEach(item => configMap.set(item.key, item));
+    }
+    
     return configMap;
   };
 
@@ -231,13 +263,25 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
   };
 
   const handleChecklistInputChange = (itemKey: string, value: string) => {
-    setChecklistInputValues(prev => ({ ...prev, [itemKey]: value }));
+    const newValues = { ...checklistInputValues, [itemKey]: value };
+    setChecklistInputValues(newValues);
   };
 
   const handleChecklistInputBlur = (itemKey: string) => {
-    const currentValue = (stage.checklistInputData as Record<string, string>)?.[itemKey] || "";
-    if (checklistInputValues[itemKey] !== currentValue) {
-      updateChecklistMutation.mutate({ checklistInputData: checklistInputValues });
+    const serverValue = (stage.checklistInputData as Record<string, string>)?.[itemKey] || "";
+    const localValue = checklistInputValues[itemKey] ?? "";
+    if (localValue !== serverValue) {
+      const mergedData = {
+        ...((stage.checklistInputData as Record<string, string>) || {}),
+        ...checklistInputValues
+      };
+      updateChecklistMutation.mutate({ checklistInputData: mergedData });
+    }
+  };
+
+  const handleChecklistInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, itemKey: string) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
     }
   };
 
@@ -324,6 +368,14 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
   };
 
   const getChecklistItemLabel = (itemKey: string) => {
+    const itemConfig = checklistItemConfigs.get(itemKey);
+    if (itemConfig) {
+      const lang = i18n.language.substring(0, 2);
+      if (lang === "ru" && itemConfig.labelRu) return itemConfig.labelRu;
+      if (lang === "zh" && itemConfig.labelZh) return itemConfig.labelZh;
+      return itemConfig.label;
+    }
+    
     const translationPaths = [
       `stages.checklistItems.${itemKey}`,
       `stages.certificationSubstages.${itemKey}`,
@@ -773,6 +825,7 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
                                 value={checklistInputValues[itemKey] || ""}
                                 onChange={(e) => handleChecklistInputChange(itemKey, e.target.value)}
                                 onBlur={() => handleChecklistInputBlur(itemKey)}
+                                onKeyDown={(e) => handleChecklistInputKeyDown(e, itemKey)}
                                 className="h-8 text-sm"
                                 data-testid={`input-${stage.id}-${itemKey}`}
                               />

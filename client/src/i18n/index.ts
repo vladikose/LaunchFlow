@@ -146,6 +146,7 @@ const resources = {
         tasks: "Tasks",
         checklist: "Checklist",
         customFields: "Custom Fields",
+        enterValue: "Enter value",
         templates: {
           render: "Render",
           model3d: "3D Model",
@@ -510,6 +511,7 @@ const resources = {
         tasks: "Задачи",
         checklist: "Чек-лист",
         customFields: "Дополнительные поля",
+        enterValue: "Введите значение",
         templates: {
           render: "Рендер",
           model3d: "3D-модель",
@@ -874,6 +876,7 @@ const resources = {
         tasks: "任务",
         checklist: "清单",
         customFields: "自定义字段",
+        enterValue: "输入值",
         templates: {
           render: "渲染图",
           model3d: "3D模型",
