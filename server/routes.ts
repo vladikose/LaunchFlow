@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+import { randomBytes } from "crypto";
 import { storage } from "./storage";
 import { isAuthenticated } from "./replitAuth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
@@ -288,6 +289,214 @@ export async function registerRoutes(
       res.json(user);
     } catch (error) {
       console.error("Error updating user:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get current company info
+  app.get("/api/company", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const companyId = await ensureUserCompany(authUser.id);
+      const company = await storage.getCompanyById(companyId);
+      res.json(company);
+    } catch (error) {
+      console.error("Error getting company:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Update company info (admin only)
+  app.patch("/api/company", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const currentUser = await storage.getUser(authUser.id);
+      if (currentUser?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const companyId = await ensureUserCompany(authUser.id);
+      const { name, logoUrl } = req.body;
+      const updateData: Record<string, any> = {};
+      if (name !== undefined) updateData.name = name;
+      if (logoUrl !== undefined) updateData.logoUrl = logoUrl;
+      
+      const company = await storage.updateCompany(companyId, updateData);
+      res.json(company);
+    } catch (error) {
+      console.error("Error updating company:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Create invite link (admin only)
+  app.post("/api/company/invites", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const currentUser = await storage.getUser(authUser.id);
+      if (currentUser?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const companyId = await ensureUserCompany(authUser.id);
+      const { email, role } = req.body;
+      
+      // Generate a unique token
+      const token = randomBytes(32).toString("hex");
+      
+      // Expires in 7 days
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+      
+      const invite = await storage.createCompanyInvite({
+        companyId,
+        token,
+        email: email || null,
+        role: role || "user",
+        createdById: authUser.id,
+        expiresAt,
+      });
+      
+      res.json(invite);
+    } catch (error) {
+      console.error("Error creating invite:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Get all invites for company (admin only)
+  app.get("/api/company/invites", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const currentUser = await storage.getUser(authUser.id);
+      if (currentUser?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const companyId = await ensureUserCompany(authUser.id);
+      const invites = await storage.getCompanyInvitesByCompany(companyId);
+      res.json(invites);
+    } catch (error) {
+      console.error("Error getting invites:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete an invite (admin only)
+  app.delete("/api/company/invites/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const currentUser = await storage.getUser(authUser.id);
+      if (currentUser?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      await storage.deleteCompanyInvite(req.params.id);
+      res.json({ message: "Invite deleted" });
+    } catch (error) {
+      console.error("Error deleting invite:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Validate invite token (public)
+  app.get("/api/invites/:token", async (req: Request, res: Response) => {
+    try {
+      const invite = await storage.getCompanyInviteByToken(req.params.token);
+      if (!invite) {
+        return res.status(404).json({ message: "Invite not found" });
+      }
+      if (invite.usedAt) {
+        return res.status(400).json({ message: "Invite already used" });
+      }
+      if (new Date() > new Date(invite.expiresAt)) {
+        return res.status(400).json({ message: "Invite expired" });
+      }
+      
+      // Get company name for display
+      const company = await storage.getCompanyById(invite.companyId);
+      res.json({ 
+        valid: true, 
+        companyName: company?.name,
+        email: invite.email,
+        role: invite.role,
+      });
+    } catch (error) {
+      console.error("Error validating invite:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Accept invite (authenticated user)
+  app.post("/api/invites/:token/accept", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const invite = await storage.getCompanyInviteByToken(req.params.token);
+      if (!invite) {
+        return res.status(404).json({ message: "Invite not found" });
+      }
+      if (invite.usedAt) {
+        return res.status(400).json({ message: "Invite already used" });
+      }
+      if (new Date() > new Date(invite.expiresAt)) {
+        return res.status(400).json({ message: "Invite expired" });
+      }
+      
+      // Mark invite as used
+      await storage.useCompanyInvite(req.params.token, authUser.id);
+      
+      // Update user with company and role
+      const user = await storage.updateUser(authUser.id, {
+        companyId: invite.companyId,
+        role: invite.role || "user",
+      });
+      
+      res.json(user);
+    } catch (error) {
+      console.error("Error accepting invite:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Remove user from company (admin only)
+  app.delete("/api/users/:id/company", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const currentUser = await storage.getUser(authUser.id);
+      if (currentUser?.role !== "admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
+      // Can't remove yourself
+      if (req.params.id === authUser.id) {
+        return res.status(400).json({ message: "Cannot remove yourself from company" });
+      }
+      
+      const user = await storage.removeUserFromCompany(req.params.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json({ message: "User removed from company" });
+    } catch (error) {
+      console.error("Error removing user from company:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

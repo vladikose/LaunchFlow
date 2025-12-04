@@ -3,6 +3,7 @@ import { db } from "./db";
 import {
   users,
   companies,
+  companyInvites,
   projects,
   products,
   stageTemplates,
@@ -16,6 +17,8 @@ import {
   type UpsertUser,
   type Company,
   type InsertCompany,
+  type CompanyInvite,
+  type InsertCompanyInvite,
   type Project,
   type InsertProject,
   type Product,
@@ -105,6 +108,16 @@ export interface IStorage {
     completedProjectCount: number;
     avgProjectDuration: number | null;
   }>>;
+  
+  // Company invites
+  createCompanyInvite(invite: InsertCompanyInvite): Promise<CompanyInvite>;
+  getCompanyInviteByToken(token: string): Promise<CompanyInvite | undefined>;
+  getCompanyInvitesByCompany(companyId: string): Promise<CompanyInvite[]>;
+  useCompanyInvite(token: string, userId: string): Promise<CompanyInvite | undefined>;
+  deleteCompanyInvite(id: string): Promise<void>;
+  
+  // Remove user from company
+  removeUserFromCompany(userId: string): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -744,6 +757,50 @@ export class DatabaseStorage implements IStorage {
     }
 
     return result;
+  }
+
+  // Company invites methods
+  async createCompanyInvite(invite: InsertCompanyInvite): Promise<CompanyInvite> {
+    const [newInvite] = await db.insert(companyInvites).values(invite).returning();
+    return newInvite;
+  }
+
+  async getCompanyInviteByToken(token: string): Promise<CompanyInvite | undefined> {
+    const [invite] = await db
+      .select()
+      .from(companyInvites)
+      .where(eq(companyInvites.token, token));
+    return invite;
+  }
+
+  async getCompanyInvitesByCompany(companyId: string): Promise<CompanyInvite[]> {
+    return db
+      .select()
+      .from(companyInvites)
+      .where(eq(companyInvites.companyId, companyId))
+      .orderBy(desc(companyInvites.createdAt));
+  }
+
+  async useCompanyInvite(token: string, userId: string): Promise<CompanyInvite | undefined> {
+    const [invite] = await db
+      .update(companyInvites)
+      .set({ usedById: userId, usedAt: new Date() })
+      .where(eq(companyInvites.token, token))
+      .returning();
+    return invite;
+  }
+
+  async deleteCompanyInvite(id: string): Promise<void> {
+    await db.delete(companyInvites).where(eq(companyInvites.id, id));
+  }
+
+  async removeUserFromCompany(userId: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ companyId: null, role: "guest", updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return user;
   }
 }
 

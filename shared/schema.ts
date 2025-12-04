@@ -51,6 +51,20 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Company invites table
+export const companyInvites = pgTable("company_invites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").references(() => companies.id).notNull(),
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  email: varchar("email", { length: 255 }),
+  role: userRoleEnum("role").default("user"),
+  createdById: varchar("created_by_id").references(() => users.id),
+  usedById: varchar("used_by_id").references(() => users.id),
+  usedAt: timestamp("used_at"),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Projects table
 export const projects = pgTable("projects", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -424,6 +438,7 @@ export const insertCommentSchema = createInsertSchema(comments).omit({ id: true,
 export const insertTaskSchema = createInsertSchema(tasks).omit({ id: true, createdAt: true, completedAt: true });
 export const insertDeadlineHistorySchema = createInsertSchema(deadlineHistory).omit({ id: true, createdAt: true });
 export const insertStatusHistorySchema = createInsertSchema(statusHistory).omit({ id: true, createdAt: true });
+export const insertCompanyInviteSchema = createInsertSchema(companyInvites).omit({ id: true, createdAt: true, usedAt: true, usedById: true });
 
 // Types
 export type Company = typeof companies.$inferSelect;
@@ -449,6 +464,8 @@ export type DeadlineHistory = typeof deadlineHistory.$inferSelect;
 export type InsertDeadlineHistory = z.infer<typeof insertDeadlineHistorySchema>;
 export type StatusHistory = typeof statusHistory.$inferSelect;
 export type InsertStatusHistory = z.infer<typeof insertStatusHistorySchema>;
+export type CompanyInvite = typeof companyInvites.$inferSelect;
+export type InsertCompanyInvite = z.infer<typeof insertCompanyInviteSchema>;
 
 // Extended types with relations
 export type ProjectWithRelations = Project & {
