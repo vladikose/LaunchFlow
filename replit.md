@@ -130,7 +130,20 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### Project Detail Page UI Redesign (Latest)
+### User Settings Page (Latest)
+- New Settings page at `/settings` for user profile management
+- Profile Photo section with avatar upload to object storage
+- Personal Information section with editable fields:
+  - First name and last name
+  - Job title (new field added to users database schema)
+  - Email display (read-only, managed by authentication provider)
+- Password section with note explaining Replit OIDC authentication
+- API endpoint `PATCH /api/users/me` for self-profile updates
+- Full multi-language support (EN/RU/ZH) for all settings UI elements
+- Dashboard now shows user-specific statistics (active/completed/overdue projects)
+- Admin user list displays all users globally across all companies
+
+### Project Detail Page UI Redesign
 - Completely redesigned project header with:
   - Cover image from first "Render" stage (clickable to select from available render images)
   - Project name and description

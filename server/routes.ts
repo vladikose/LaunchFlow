@@ -246,6 +246,30 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/users/me", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const { firstName, lastName, jobTitle, profileImageUrl } = req.body;
+      const updateData: Record<string, any> = {};
+      if (firstName !== undefined) updateData.firstName = firstName;
+      if (lastName !== undefined) updateData.lastName = lastName;
+      if (jobTitle !== undefined) updateData.jobTitle = jobTitle;
+      if (profileImageUrl !== undefined) updateData.profileImageUrl = profileImageUrl;
+      
+      const user = await storage.updateUser(authUser.id, updateData);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      console.error("Error updating current user:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.patch("/api/users/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const authUser = getUser(req);

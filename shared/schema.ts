@@ -43,6 +43,7 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }).unique(),
   firstName: varchar("first_name", { length: 100 }),
   lastName: varchar("last_name", { length: 100 }),
+  jobTitle: varchar("job_title", { length: 100 }),
   profileImageUrl: varchar("profile_image_url", { length: 500 }),
   companyId: varchar("company_id").references(() => companies.id),
   role: userRoleEnum("role").default("user"),

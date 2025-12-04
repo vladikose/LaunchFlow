@@ -13,6 +13,7 @@ import ProjectDetail from "@/pages/ProjectDetail";
 import Tasks from "@/pages/Tasks";
 import AdminUsers from "@/pages/AdminUsers";
 import AdminStages from "@/pages/AdminStages";
+import Settings from "@/pages/Settings";
 import NotFound from "@/pages/not-found";
 import "@/i18n";
 
@@ -51,6 +52,7 @@ function Router() {
         <Route path="/tasks" component={Tasks} />
         <Route path="/admin/users" component={AdminUsers} />
         <Route path="/admin/stages" component={AdminStages} />
+        <Route path="/settings" component={Settings} />
         <Route component={NotFound} />
       </Switch>
     </AppLayout>
