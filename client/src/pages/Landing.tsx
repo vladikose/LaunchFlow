@@ -8,7 +8,6 @@ import {
   FolderOpen, 
   Users, 
   Bell,
-  ArrowRight,
   CheckCircle2,
   BarChart3,
   Clock
@@ -80,23 +79,9 @@ export default function Landing() {
               <p className="text-xl text-muted-foreground mb-4">
                 {t("landing.subtitle")}
               </p>
-              <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 {t("landing.description")}
               </p>
-              <div className="flex flex-wrap items-center justify-center gap-4">
-                <Button size="lg" asChild data-testid="button-cta-login">
-                  <a href="/api/login">
-                    {t("landing.loginRegister")}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </a>
-                </Button>
-                <Button size="lg" variant="outline" asChild data-testid="button-cta-create-company">
-                  <a href="/api/login">
-                    {t("landing.createCompany")}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </a>
-                </Button>
-              </div>
             </div>
           </div>
         </section>
@@ -212,15 +197,9 @@ export default function Landing() {
               <h2 className="text-3xl font-semibold mb-4">
                 Ready to streamline your product launches?
               </h2>
-              <p className="text-lg text-muted-foreground mb-8">
+              <p className="text-lg text-muted-foreground">
                 Join companies that trust LaunchFlow for their product launch management.
               </p>
-              <Button size="lg" asChild data-testid="button-bottom-cta">
-                <a href="/api/login">
-                  {t("landing.cta")}
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </a>
-              </Button>
             </div>
           </div>
         </section>
