@@ -254,9 +254,22 @@ export async function registerRoutes(
       if (!authUser) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      const companyId = await requireUserCompany(authUser.id);
-      const usersWithStats = await storage.getUsersWithStats(companyId);
-      res.json(usersWithStats);
+      const currentUser = await storage.getUser(authUser.id);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Superadmin sees all users globally, regular admin sees only company users
+      if (currentUser.role === "superadmin") {
+        const usersWithStats = await storage.getAllUsersWithStats();
+        res.json(usersWithStats);
+      } else if (currentUser.role === "admin") {
+        const companyId = await requireUserCompany(authUser.id);
+        const usersWithStats = await storage.getUsersWithStats(companyId);
+        res.json(usersWithStats);
+      } else {
+        return res.status(403).json({ message: "Admin access required" });
+      }
     } catch (error) {
       handleRouteError(error, res, "getting users with stats");
     }
@@ -293,7 +306,7 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Unauthorized" });
       }
       const currentUser = await storage.getUser(authUser.id);
-      if (currentUser?.role !== "admin") {
+      if (currentUser?.role !== "admin" && currentUser?.role !== "superadmin") {
         return res.status(403).json({ message: "Admin access required" });
       }
       const user = await storage.updateUser(req.params.id, req.body);
@@ -537,7 +550,7 @@ export async function registerRoutes(
     }
   });
 
-  // Remove user from company (admin only)
+  // Remove user from company (admin only - soft delete)
   app.delete("/api/users/:id/company", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const authUser = getUser(req);
@@ -545,7 +558,7 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Unauthorized" });
       }
       const currentUser = await storage.getUser(authUser.id);
-      if (currentUser?.role !== "admin") {
+      if (currentUser?.role !== "admin" && currentUser?.role !== "superadmin") {
         return res.status(403).json({ message: "Admin access required" });
       }
       
@@ -561,6 +574,31 @@ export async function registerRoutes(
       res.json({ message: "User removed from company" });
     } catch (error) {
       console.error("Error removing user from company:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Full delete user (superadmin only - hard delete)
+  app.delete("/api/users/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const currentUser = await storage.getUser(authUser.id);
+      if (currentUser?.role !== "superadmin") {
+        return res.status(403).json({ message: "Superadmin access required" });
+      }
+      
+      // Can't delete yourself
+      if (req.params.id === authUser.id) {
+        return res.status(400).json({ message: "Cannot delete yourself" });
+      }
+      
+      await storage.deleteUser(req.params.id);
+      res.json({ message: "User deleted permanently" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

@@ -108,6 +108,12 @@ export interface IStorage {
     completedProjectCount: number;
     avgProjectDuration: number | null;
   }>>;
+  getAllUsersWithStats(): Promise<Array<User & { 
+    projectCount: number; 
+    completedProjectCount: number;
+    avgProjectDuration: number | null;
+  }>>;
+  deleteUser(userId: string): Promise<void>;
   
   // Company invites
   createCompanyInvite(invite: InsertCompanyInvite): Promise<CompanyInvite>;
@@ -686,11 +692,29 @@ export class DatabaseStorage implements IStorage {
     completedProjectCount: number;
     avgProjectDuration: number | null;
   }>> {
-    // Get all users (admin sees everyone)
+    // Get only users from the specified company
+    const companyUsers = await this.getUsersByCompany(companyId);
+    return this.calculateUserStats(companyUsers);
+  }
+
+  async getAllUsersWithStats(): Promise<Array<User & { 
+    projectCount: number; 
+    completedProjectCount: number;
+    avgProjectDuration: number | null;
+  }>> {
+    // Superadmin: get ALL users globally
     const allUsers = await this.getAllUsers();
+    return this.calculateUserStats(allUsers);
+  }
+
+  private async calculateUserStats(userList: User[]): Promise<Array<User & { 
+    projectCount: number; 
+    completedProjectCount: number;
+    avgProjectDuration: number | null;
+  }>> {
     const result = [];
 
-    for (const user of allUsers) {
+    for (const user of userList) {
       // Get all projects where user is responsible
       const userProjects = await db
         .select()
@@ -805,6 +829,17 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return user;
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    // Full deletion - only for superadmin
+    // First, clean up related references
+    await db.update(projects).set({ responsibleUserId: null }).where(eq(projects.responsibleUserId, userId));
+    await db.update(projects).set({ createdById: null }).where(eq(projects.createdById, userId));
+    await db.update(companyInvites).set({ createdById: null }).where(eq(companyInvites.createdById, userId));
+    await db.update(companyInvites).set({ usedById: null }).where(eq(companyInvites.usedById, userId));
+    // Then delete the user
+    await db.delete(users).where(eq(users.id, userId));
   }
 }
 
