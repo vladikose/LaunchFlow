@@ -312,6 +312,46 @@ export default function ProjectDetail() {
               </div>
               <span className="text-sm font-medium">{progress}%</span>
             </div>
+
+            {project.products && project.products.length > 0 && (
+              <div className="mt-4">
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                  {t("products.title")}
+                </h3>
+                <div className="rounded-lg border overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                          {t("products.article")}
+                        </th>
+                        <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                          {t("products.name")}
+                        </th>
+                        <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+                          {t("products.barcode")}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {project.products.map((product) => (
+                        <tr key={product.id} className="hover:bg-muted/30 transition-colors">
+                          <td className="px-3 py-2 font-mono text-sm" data-testid={`text-article-${product.id}`}>
+                            {product.article || "-"}
+                          </td>
+                          <td className="px-3 py-2" data-testid={`text-product-name-${product.id}`}>
+                            {product.name}
+                          </td>
+                          <td className="px-3 py-2 font-mono text-sm" data-testid={`text-barcode-${product.id}`}>
+                            {product.barcode || "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
