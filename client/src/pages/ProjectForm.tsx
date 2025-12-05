@@ -28,7 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ArrowLeft, Plus, Trash2, Save } from "lucide-react";
-import type { User, Project, Product } from "@shared/schema";
+import type { User, Project, Product, Factory, ProductType } from "@shared/schema";
 
 const productSchema = z.object({
   article: z.string().optional(),
@@ -40,6 +40,8 @@ const projectFormSchema = z.object({
   name: z.string().min(1, "Project name is required"),
   description: z.string().optional(),
   responsibleUserId: z.string().optional(),
+  factoryId: z.string().optional(),
+  productTypeId: z.string().optional(),
   deadline: z.string().optional(),
   products: z.array(productSchema).optional().default([]),
 });
@@ -58,6 +60,14 @@ export default function ProjectForm() {
     queryKey: ["/api/users"],
   });
 
+  const { data: factories, isLoading: factoriesLoading } = useQuery<Factory[]>({
+    queryKey: ["/api/factories"],
+  });
+
+  const { data: productTypes, isLoading: productTypesLoading } = useQuery<ProductType[]>({
+    queryKey: ["/api/product-types"],
+  });
+
   const { data: existingProject, isLoading: projectLoading } = useQuery<Project & { products?: Product[] }>({
     queryKey: ["/api/projects", projectId],
     enabled: isEdit,
@@ -69,6 +79,8 @@ export default function ProjectForm() {
       name: "",
       description: "",
       responsibleUserId: "",
+      factoryId: "",
+      productTypeId: "",
       deadline: "",
       products: [],
     },
@@ -77,6 +89,8 @@ export default function ProjectForm() {
           name: existingProject.name,
           description: existingProject.description || "",
           responsibleUserId: existingProject.responsibleUserId || "",
+          factoryId: existingProject.factoryId || "",
+          productTypeId: existingProject.productTypeId || "",
           deadline: existingProject.deadline
             ? new Date(existingProject.deadline).toISOString().split("T")[0]
             : "",
@@ -247,6 +261,76 @@ export default function ProjectForm() {
                       <FormControl>
                         <Input type="date" {...field} data-testid="input-deadline" />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="factoryId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("projects.factory")}</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger data-testid="select-factory">
+                            <SelectValue placeholder={t("projects.selectFactory")} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {factoriesLoading ? (
+                            <div className="p-2">
+                              <Skeleton className="h-8 w-full" />
+                            </div>
+                          ) : (
+                            factories?.map((factory) => (
+                              <SelectItem key={factory.id} value={factory.id}>
+                                {factory.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="productTypeId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("projects.productType")}</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value || ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger data-testid="select-product-type">
+                            <SelectValue placeholder={t("projects.selectProductType")} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {productTypesLoading ? (
+                            <div className="p-2">
+                              <Skeleton className="h-8 w-full" />
+                            </div>
+                          ) : (
+                            productTypes?.map((pt) => (
+                              <SelectItem key={pt.id} value={pt.id}>
+                                {pt.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
