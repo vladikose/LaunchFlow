@@ -328,6 +328,7 @@ export const tasks = pgTable("tasks", {
   completedAt: timestamp("completed_at"),
   status: taskStatusEnum("status").default("pending"),
   revisionNote: text("revision_note"),
+  revisionResponse: text("revision_response"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

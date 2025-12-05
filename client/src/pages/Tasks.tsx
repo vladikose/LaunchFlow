@@ -44,6 +44,9 @@ export default function Tasks() {
   const [revisionNote, setRevisionNote] = useState("");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedTaskForDelete, setSelectedTaskForDelete] = useState<TaskWithUsers | null>(null);
+  const [completeRevisionDialogOpen, setCompleteRevisionDialogOpen] = useState(false);
+  const [selectedTaskForCompleteRevision, setSelectedTaskForCompleteRevision] = useState<TaskWithUsers | null>(null);
+  const [revisionResponse, setRevisionResponse] = useState("");
 
   const { data: incomingTasks, isLoading: isLoadingIncoming } = useQuery<TaskWithUsers[]>({
     queryKey: ["/api/tasks"],
@@ -117,6 +120,27 @@ export default function Tasks() {
     },
     onError: () => {
       toast({ title: t("tasks.deleteFailed"), variant: "destructive" });
+    },
+  });
+
+  const completeRevisionMutation = useMutation({
+    mutationFn: async ({ taskId, response }: { taskId: string; response: string }) => {
+      return apiRequest("PATCH", `/api/tasks/${taskId}`, { 
+        status: "completed",
+        completed: true,
+        revisionResponse: response
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks/outgoing"] });
+      setCompleteRevisionDialogOpen(false);
+      setSelectedTaskForCompleteRevision(null);
+      setRevisionResponse("");
+      toast({ title: t("tasks.revisionCompleted") });
+    },
+    onError: () => {
+      toast({ title: t("tasks.updateFailed"), variant: "destructive" });
     },
   });
 
@@ -215,6 +239,16 @@ export default function Tasks() {
                 </div>
               )}
 
+              {isCompleted && task.revisionResponse && (
+                <div className="bg-green-100 dark:bg-green-950 p-2 rounded-md text-sm">
+                  <div className="flex items-center gap-1 text-green-700 dark:text-green-400 font-medium mb-1">
+                    <CheckSquare className="h-3.5 w-3.5" />
+                    {t("tasks.revisionResponse")}:
+                  </div>
+                  <p className="text-green-800 dark:text-green-300">{task.revisionResponse}</p>
+                </div>
+              )}
+
               <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                 {task.stage?.project && (
                   <Link
@@ -282,6 +316,22 @@ export default function Tasks() {
                   >
                     <RotateCcw className="h-3.5 w-3.5 mr-1" />
                     {t("tasks.requestRevision")}
+                  </Button>
+                )}
+
+                {!isOutgoing && isNeedsRevision && (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => {
+                      setSelectedTaskForCompleteRevision(task);
+                      setRevisionResponse("");
+                      setCompleteRevisionDialogOpen(true);
+                    }}
+                    data-testid={`button-complete-revision-${task.id}`}
+                  >
+                    <CheckSquare className="h-3.5 w-3.5 mr-1" />
+                    {t("tasks.completeRevision")}
                   </Button>
                 )}
                 
@@ -477,6 +527,53 @@ export default function Tasks() {
               data-testid="button-confirm-delete"
             >
               {t("tasks.confirmDelete")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={completeRevisionDialogOpen} onOpenChange={setCompleteRevisionDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("tasks.completeRevisionTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("tasks.completeRevisionDescription")}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedTaskForCompleteRevision?.revisionNote && (
+            <div className="bg-yellow-100 dark:bg-yellow-950 p-3 rounded-md text-sm">
+              <div className="flex items-center gap-1 text-yellow-700 dark:text-yellow-400 font-medium mb-1">
+                <MessageSquare className="h-3.5 w-3.5" />
+                {t("tasks.revisionNote")}:
+              </div>
+              <p className="text-yellow-800 dark:text-yellow-300">{selectedTaskForCompleteRevision.revisionNote}</p>
+            </div>
+          )}
+          <Textarea
+            placeholder={t("tasks.revisionResponsePlaceholder")}
+            value={revisionResponse}
+            onChange={(e) => setRevisionResponse(e.target.value)}
+            className="min-h-[100px]"
+            data-testid="textarea-revision-response"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCompleteRevisionDialogOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={() => {
+                if (selectedTaskForCompleteRevision) {
+                  completeRevisionMutation.mutate({
+                    taskId: selectedTaskForCompleteRevision.id,
+                    response: revisionResponse
+                  });
+                }
+              }}
+              disabled={completeRevisionMutation.isPending}
+              data-testid="button-submit-revision-complete"
+            >
+              <CheckSquare className="h-4 w-4 mr-1" />
+              {t("tasks.markAsCompleted")}
             </Button>
           </DialogFooter>
         </DialogContent>
