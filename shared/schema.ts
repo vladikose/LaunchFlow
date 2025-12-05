@@ -67,6 +67,29 @@ export const companyInvites = pgTable("company_invites", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Factories table (suppliers/manufacturers)
+export const factories = pgTable("factories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").references(() => companies.id).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  address: text("address"),
+  latitude: varchar("latitude", { length: 50 }),
+  longitude: varchar("longitude", { length: 50 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Product types/categories table
+export const productTypes = pgTable("product_types", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").references(() => companies.id).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  nameRu: varchar("name_ru", { length: 255 }),
+  nameZh: varchar("name_zh", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Projects table
 export const projects = pgTable("projects", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -74,6 +97,8 @@ export const projects = pgTable("projects", {
   name: varchar("name", { length: 255 }).notNull(),
   description: text("description"),
   responsibleUserId: varchar("responsible_user_id").references(() => users.id),
+  factoryId: varchar("factory_id").references(() => factories.id),
+  productTypeId: varchar("product_type_id").references(() => productTypes.id),
   deadline: timestamp("deadline"),
   coverImageId: varchar("cover_image_id"),
   excludedTemplateIds: jsonb("excluded_template_ids").$type<string[]>(),
@@ -451,6 +476,8 @@ export const insertTaskSchema = createInsertSchema(tasks).omit({ id: true, creat
 export const insertDeadlineHistorySchema = createInsertSchema(deadlineHistory).omit({ id: true, createdAt: true });
 export const insertStatusHistorySchema = createInsertSchema(statusHistory).omit({ id: true, createdAt: true });
 export const insertCompanyInviteSchema = createInsertSchema(companyInvites).omit({ id: true, createdAt: true, usedAt: true, usedById: true });
+export const insertFactorySchema = createInsertSchema(factories).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertProductTypeSchema = createInsertSchema(productTypes).omit({ id: true, createdAt: true, updatedAt: true });
 
 // Types
 export type Company = typeof companies.$inferSelect;
@@ -478,10 +505,16 @@ export type StatusHistory = typeof statusHistory.$inferSelect;
 export type InsertStatusHistory = z.infer<typeof insertStatusHistorySchema>;
 export type CompanyInvite = typeof companyInvites.$inferSelect;
 export type InsertCompanyInvite = z.infer<typeof insertCompanyInviteSchema>;
+export type Factory = typeof factories.$inferSelect;
+export type InsertFactory = z.infer<typeof insertFactorySchema>;
+export type ProductType = typeof productTypes.$inferSelect;
+export type InsertProductType = z.infer<typeof insertProductTypeSchema>;
 
 // Extended types with relations
 export type ProjectWithRelations = Project & {
   responsibleUser?: User | null;
+  factory?: Factory | null;
+  productType?: ProductType | null;
   products?: Product[];
   stages?: StageWithRelations[];
 };
