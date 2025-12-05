@@ -167,7 +167,7 @@ export default function Tasks() {
   const renderTaskCard = (task: TaskWithUsers, isOutgoing: boolean) => {
     const overdue = isOverdue(task);
     const isNeedsRevision = task.status === "needs_revision";
-    const isCompleted = task.status === "completed" || task.completed;
+    const isCompleted = task.status === "completed" || !!task.completed;
     const isPending = !isNeedsRevision && !isCompleted;
 
     return (
