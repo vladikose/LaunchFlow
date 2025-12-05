@@ -606,6 +606,170 @@ export async function registerRoutes(
     }
   });
 
+  // Factory routes
+  app.get("/api/factories", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const companyId = await requireUserCompany(authUser.id);
+      const factoryList = await storage.getFactoriesByCompany(companyId);
+      res.json(factoryList);
+    } catch (error) {
+      handleRouteError(error, res, "getting factories");
+    }
+  });
+
+  const createFactorySchema = z.object({
+    name: z.string().min(1),
+    address: z.string().optional(),
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
+  });
+
+  app.post("/api/factories", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const currentUser = await storage.getUser(authUser.id);
+      if (currentUser?.role !== "admin" && currentUser?.role !== "superadmin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const companyId = await requireUserCompany(authUser.id);
+      const validatedData = createFactorySchema.parse(req.body);
+      const factory = await storage.createFactory({
+        ...validatedData,
+        companyId,
+      });
+      res.json(factory);
+    } catch (error) {
+      handleRouteError(error, res, "creating factory");
+    }
+  });
+
+  app.patch("/api/factories/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const currentUser = await storage.getUser(authUser.id);
+      if (currentUser?.role !== "admin" && currentUser?.role !== "superadmin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const validatedData = createFactorySchema.partial().parse(req.body);
+      const factory = await storage.updateFactory(req.params.id, validatedData);
+      if (!factory) {
+        return res.status(404).json({ message: "Factory not found" });
+      }
+      res.json(factory);
+    } catch (error) {
+      handleRouteError(error, res, "updating factory");
+    }
+  });
+
+  app.delete("/api/factories/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const currentUser = await storage.getUser(authUser.id);
+      if (currentUser?.role !== "admin" && currentUser?.role !== "superadmin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      await storage.deleteFactory(req.params.id);
+      res.json({ message: "Factory deleted" });
+    } catch (error) {
+      handleRouteError(error, res, "deleting factory");
+    }
+  });
+
+  // Product type routes
+  app.get("/api/product-types", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const companyId = await requireUserCompany(authUser.id);
+      const productTypeList = await storage.getProductTypesByCompany(companyId);
+      res.json(productTypeList);
+    } catch (error) {
+      handleRouteError(error, res, "getting product types");
+    }
+  });
+
+  const createProductTypeSchema = z.object({
+    name: z.string().min(1),
+    nameRu: z.string().optional(),
+    nameZh: z.string().optional(),
+    description: z.string().optional(),
+  });
+
+  app.post("/api/product-types", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const currentUser = await storage.getUser(authUser.id);
+      if (currentUser?.role !== "admin" && currentUser?.role !== "superadmin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const companyId = await requireUserCompany(authUser.id);
+      const validatedData = createProductTypeSchema.parse(req.body);
+      const productType = await storage.createProductType({
+        ...validatedData,
+        companyId,
+      });
+      res.json(productType);
+    } catch (error) {
+      handleRouteError(error, res, "creating product type");
+    }
+  });
+
+  app.patch("/api/product-types/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const currentUser = await storage.getUser(authUser.id);
+      if (currentUser?.role !== "admin" && currentUser?.role !== "superadmin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const validatedData = createProductTypeSchema.partial().parse(req.body);
+      const productType = await storage.updateProductType(req.params.id, validatedData);
+      if (!productType) {
+        return res.status(404).json({ message: "Product type not found" });
+      }
+      res.json(productType);
+    } catch (error) {
+      handleRouteError(error, res, "updating product type");
+    }
+  });
+
+  app.delete("/api/product-types/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const currentUser = await storage.getUser(authUser.id);
+      if (currentUser?.role !== "admin" && currentUser?.role !== "superadmin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      await storage.deleteProductType(req.params.id);
+      res.json({ message: "Product type deleted" });
+    } catch (error) {
+      handleRouteError(error, res, "deleting product type");
+    }
+  });
+
   app.get("/api/dashboard/stats", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const authUser = getUser(req);
