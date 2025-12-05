@@ -26,14 +26,14 @@ import coolCatAvatar from "@assets/generated_images/cool_ginger_cat_avatar.png";
 import tuxedoCatAvatar from "@assets/generated_images/tuxedo_cat_avatar.png";
 
 const PRESET_AVATARS = [
-  { id: "orange", src: orangeCatAvatar, name: "Orange Cat" },
-  { id: "gray", src: grayCatAvatar, name: "Gray Cat" },
-  { id: "black", src: blackCatAvatar, name: "Black Cat" },
-  { id: "white", src: whiteCatAvatar, name: "White Cat" },
-  { id: "calico", src: calicoCatAvatar, name: "Calico Cat" },
-  { id: "siamese", src: siameseCatAvatar, name: "Siamese Cat" },
-  { id: "cool", src: coolCatAvatar, name: "Cool Cat" },
-  { id: "tuxedo", src: tuxedoCatAvatar, name: "Tuxedo Cat" },
+  { id: "orange", src: orangeCatAvatar, dbValue: "preset:orange", name: "Orange Cat" },
+  { id: "gray", src: grayCatAvatar, dbValue: "preset:gray", name: "Gray Cat" },
+  { id: "black", src: blackCatAvatar, dbValue: "preset:black", name: "Black Cat" },
+  { id: "white", src: whiteCatAvatar, dbValue: "preset:white", name: "White Cat" },
+  { id: "calico", src: calicoCatAvatar, dbValue: "preset:calico", name: "Calico Cat" },
+  { id: "siamese", src: siameseCatAvatar, dbValue: "preset:siamese", name: "Siamese Cat" },
+  { id: "cool", src: coolCatAvatar, dbValue: "preset:cool", name: "Cool Cat" },
+  { id: "tuxedo", src: tuxedoCatAvatar, dbValue: "preset:tuxedo", name: "Tuxedo Cat" },
 ];
 
 const profileSchema = z.object({
@@ -102,12 +102,15 @@ export default function Settings() {
     },
   });
 
-  const handlePresetAvatarSelect = (avatarSrc: string) => {
-    updateAvatarMutation.mutate(avatarSrc);
+  const handlePresetAvatarSelect = (dbValue: string) => {
+    updateAvatarMutation.mutate(dbValue);
   };
 
-  const isPresetAvatarSelected = (avatarSrc: string) => {
-    return user?.profileImageUrl === avatarSrc;
+  const isPresetAvatarSelected = (avatar: typeof PRESET_AVATARS[0]) => {
+    if (!user?.profileImageUrl) return false;
+    if (user.profileImageUrl === avatar.dbValue) return true;
+    if (user.profileImageUrl.includes(avatar.id)) return true;
+    return false;
   };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -247,10 +250,10 @@ export default function Settings() {
                   <button
                     key={avatar.id}
                     type="button"
-                    onClick={() => handlePresetAvatarSelect(avatar.src)}
+                    onClick={() => handlePresetAvatarSelect(avatar.dbValue)}
                     disabled={updateAvatarMutation.isPending}
                     className={`relative rounded-full overflow-hidden border-2 transition-all hover-elevate ${
-                      isPresetAvatarSelected(avatar.src)
+                      isPresetAvatarSelected(avatar)
                         ? "border-primary ring-2 ring-primary ring-offset-2"
                         : "border-transparent hover:border-muted-foreground/30"
                     }`}
@@ -261,7 +264,7 @@ export default function Settings() {
                       alt={avatar.name}
                       className="w-full aspect-square object-cover"
                     />
-                    {isPresetAvatarSelected(avatar.src) && (
+                    {isPresetAvatarSelected(avatar) && (
                       <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
                         <Check className="h-6 w-6 text-primary" />
                       </div>
