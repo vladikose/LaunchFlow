@@ -47,6 +47,7 @@ export default function Tasks() {
   const [completeRevisionDialogOpen, setCompleteRevisionDialogOpen] = useState(false);
   const [selectedTaskForCompleteRevision, setSelectedTaskForCompleteRevision] = useState<TaskWithUsers | null>(null);
   const [revisionResponse, setRevisionResponse] = useState("");
+  const [revisionResponses, setRevisionResponses] = useState<Record<string, string>>({});
 
   const { data: incomingTasks, isLoading: isLoadingIncoming } = useQuery<TaskWithUsers[]>({
     queryKey: ["/api/tasks"],
@@ -230,12 +231,38 @@ export default function Tasks() {
               </div>
               
               {isNeedsRevision && task.revisionNote && (
-                <div className="bg-yellow-100 dark:bg-yellow-950 p-2 rounded-md text-sm">
-                  <div className="flex items-center gap-1 text-yellow-700 dark:text-yellow-400 font-medium mb-1">
-                    <MessageSquare className="h-3.5 w-3.5" />
+                <div className="bg-yellow-100 dark:bg-yellow-950 p-3 rounded-md">
+                  <div className="flex items-center gap-1 text-yellow-700 dark:text-yellow-400 font-medium mb-2">
+                    <MessageSquare className="h-4 w-4" />
                     {t("tasks.revisionNote")}:
                   </div>
-                  <p className="text-yellow-800 dark:text-yellow-300">{task.revisionNote}</p>
+                  <p className="text-yellow-800 dark:text-yellow-300 mb-3">{task.revisionNote}</p>
+                  
+                  {!isOutgoing && (
+                    <div className="space-y-2">
+                      <Textarea
+                        placeholder={t("tasks.revisionResponsePlaceholder")}
+                        value={revisionResponses[task.id] || ""}
+                        onChange={(e) => setRevisionResponses(prev => ({ ...prev, [task.id]: e.target.value }))}
+                        className="bg-white dark:bg-gray-900 border-yellow-300 dark:border-yellow-700 min-h-[80px]"
+                        data-testid={`textarea-revision-response-${task.id}`}
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          completeRevisionMutation.mutate({
+                            taskId: task.id,
+                            response: revisionResponses[task.id] || ""
+                          });
+                        }}
+                        disabled={completeRevisionMutation.isPending}
+                        data-testid={`button-submit-revision-${task.id}`}
+                      >
+                        <CheckSquare className="h-3.5 w-3.5 mr-1" />
+                        {t("tasks.completeRevision")}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -319,22 +346,6 @@ export default function Tasks() {
                   </Button>
                 )}
 
-                {!isOutgoing && isNeedsRevision && (
-                  <Button
-                    size="sm"
-                    variant="default"
-                    onClick={() => {
-                      setSelectedTaskForCompleteRevision(task);
-                      setRevisionResponse("");
-                      setCompleteRevisionDialogOpen(true);
-                    }}
-                    data-testid={`button-complete-revision-${task.id}`}
-                  >
-                    <CheckSquare className="h-3.5 w-3.5 mr-1" />
-                    {t("tasks.completeRevision")}
-                  </Button>
-                )}
-                
                 {isOutgoing && isNeedsRevision && (
                   <Button
                     size="sm"
