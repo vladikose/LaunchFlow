@@ -273,6 +273,7 @@ export const stageFiles = pgTable("stage_files", {
   version: integer("version").default(1),
   isLatest: boolean("is_latest").default(true),
   checklistItemKey: varchar("checklist_item_key", { length: 100 }),
+  allowedUserIds: text("allowed_user_ids").array(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
