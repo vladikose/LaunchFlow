@@ -634,6 +634,15 @@ export async function registerRoutes(
     }
   });
 
+  const filterFilesByAccess = (files: any[], userId: string) => {
+    return files.filter(file => {
+      if (!file.allowedUserIds || file.allowedUserIds.length === 0) {
+        return true;
+      }
+      return file.allowedUserIds.includes(userId);
+    });
+  };
+
   app.get("/api/projects/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const authUser = getUser(req);
@@ -644,6 +653,14 @@ export async function registerRoutes(
       if (!project) {
         return res.status(404).json({ message: "Project not found" });
       }
+      
+      if (project.stages) {
+        project.stages = project.stages.map(stage => ({
+          ...stage,
+          files: filterFilesByAccess(stage.files || [], authUser.id)
+        }));
+      }
+      
       res.json(project);
     } catch (error) {
       console.error("Error getting project:", error);
@@ -1367,8 +1384,24 @@ export async function registerRoutes(
         return res.status(400).json({ message: fileTypeValidation.message });
       }
       
+      // Factory Proposal stage requires access control
+      const isFactoryProposal = stage.name === "Factory Proposal" || 
+        stage.template?.name === "Factory Proposal";
+      
+      if (isFactoryProposal && (!validatedData.allowedUserIds || validatedData.allowedUserIds.length === 0)) {
+        return res.status(400).json({ 
+          message: "Factory Proposal files require selecting users with access" 
+        });
+      }
+      
       // Normalize the file URL to use /objects/ path for proper access
       const normalizedFileUrl = objectStorageService.normalizeObjectEntityPath(validatedData.fileUrl);
+      
+      // Auto-include uploader in allowedUserIds if access control is being used
+      let finalAllowedUserIds = validatedData.allowedUserIds || null;
+      if (finalAllowedUserIds && !finalAllowedUserIds.includes(authUser.id)) {
+        finalAllowedUserIds = [...finalAllowedUserIds, authUser.id];
+      }
       
       const file = await storage.createStageFile({
         stageId: req.params.id,
@@ -1380,7 +1413,7 @@ export async function registerRoutes(
         version: 1,
         isLatest: true,
         checklistItemKey: validatedData.checklistItemKey || null,
-        allowedUserIds: validatedData.allowedUserIds || null,
+        allowedUserIds: finalAllowedUserIds,
       });
       
       res.status(201).json(file);
@@ -1435,6 +1468,24 @@ export async function registerRoutes(
 
   app.get("/objects/*", async (req: Request, res: Response) => {
     try {
+      const normalizedPath = req.path;
+      
+      const stageFile = await storage.getStageFileByUrl(normalizedPath);
+      
+      if (!stageFile) {
+        return res.status(404).json({ message: "File not found" });
+      }
+      
+      if (stageFile.allowedUserIds && stageFile.allowedUserIds.length > 0) {
+        const authUser = getUser(req);
+        if (!authUser) {
+          return res.status(401).json({ message: "Authentication required for this file" });
+        }
+        if (!stageFile.allowedUserIds.includes(authUser.id)) {
+          return res.status(403).json({ message: "Access denied to this file" });
+        }
+      }
+      
       const objectFile = await objectStorageService.getObjectEntityFile(req.path);
       await objectStorageService.downloadObject(objectFile, res);
     } catch (error) {

@@ -201,6 +201,12 @@ const resources = {
           hsCode: "HS Code",
           catalogPage: "Catalog Page",
         },
+        accessControl: {
+          title: "Select Users with Access",
+          description: "Select which users can view this file. Only selected users will have access to the Factory Proposal document.",
+          selectUsersRequired: "Please select at least one user with access",
+          confirm: "Confirm",
+        },
       },
       tasks: {
         title: "My Tasks",
@@ -705,6 +711,12 @@ const resources = {
           hsCode: "Код ТН ВЭД",
           catalogPage: "Страница из каталога",
         },
+        accessControl: {
+          title: "Выберите пользователей с доступом",
+          description: "Выберите, какие пользователи смогут видеть этот файл. Только выбранные пользователи получат доступ к документу «Предложение от завода».",
+          selectUsersRequired: "Пожалуйста, выберите хотя бы одного пользователя",
+          confirm: "Подтвердить",
+        },
       },
       tasks: {
         title: "Мои задачи",
@@ -1208,6 +1220,12 @@ const resources = {
           boxPhoto: "称重箱照片",
           hsCode: "HS编码",
           catalogPage: "目录页",
+        },
+        accessControl: {
+          title: "选择有权限的用户",
+          description: "选择哪些用户可以查看此文件。只有被选中的用户才能访问工厂报价文档。",
+          selectUsersRequired: "请至少选择一个用户",
+          confirm: "确认",
         },
       },
       tasks: {

@@ -78,6 +78,7 @@ export interface IStorage {
 
   createStageFile(file: InsertStageFile): Promise<StageFile>;
   getFilesByStage(stageId: string): Promise<StageFile[]>;
+  getStageFileByUrl(fileUrl: string): Promise<StageFile | undefined>;
   deleteStageFile(fileId: string): Promise<void>;
 
   createComment(comment: InsertComment): Promise<Comment>;
@@ -468,6 +469,14 @@ export class DatabaseStorage implements IStorage {
       .from(stageFiles)
       .where(and(eq(stageFiles.stageId, stageId), eq(stageFiles.isLatest, true)))
       .orderBy(desc(stageFiles.createdAt));
+  }
+
+  async getStageFileByUrl(fileUrl: string): Promise<StageFile | undefined> {
+    const [file] = await db
+      .select()
+      .from(stageFiles)
+      .where(eq(stageFiles.fileUrl, fileUrl));
+    return file;
   }
 
   async deleteStageFile(fileId: string): Promise<void> {

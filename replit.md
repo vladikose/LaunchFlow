@@ -134,7 +134,17 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### Preset Avatar Selection (Latest)
+### File Access Control Security (Latest)
+- Complete server-side enforcement of file access control for Factory Proposal stage
+- /objects/* endpoint now requires database record to exist (deny-by-default security)
+- allowedUserIds field on stageFiles table controls which users can access specific files
+- Factory Proposal uploads require selecting users with access before upload
+- Auto-includes uploader in allowedUserIds when access control is specified
+- Project detail API filters files by allowedUserIds for unauthorized users
+- Multi-layer protection: API filtering + download endpoint enforcement
+- Full multi-language support (EN/RU/ZH) for access control UI elements
+
+### Preset Avatar Selection
 - 8 cute cat avatar presets available in Settings page
 - Users can choose from generated cat avatars instead of uploading photos
 - Preset avatars stored as static assets in attached_assets/generated_images/

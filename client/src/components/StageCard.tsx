@@ -93,6 +93,13 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
   const [productQuantities, setProductQuantities] = useState<Record<string, number>>(
     (stage.productQuantitiesData as Record<string, number>) || {}
   );
+  const [showAccessDialog, setShowAccessDialog] = useState(false);
+  const [selectedAccessUsers, setSelectedAccessUsers] = useState<string[]>([]);
+  const [pendingFileUpload, setPendingFileUpload] = useState<{
+    file: File;
+    fileUrl: string;
+    checklistItemKey?: string;
+  } | null>(null);
 
   const getChecklistItemConfigs = (): Map<string, ChecklistItemConfig> => {
     const configMap = new Map<string, ChecklistItemConfig>();
@@ -427,8 +434,15 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
     stage.template?.nameRu === "Подготовка к рассылке" ||
     stage.template?.nameRu === "Подготовка к дистрибуции";
 
+  const filterByAccess = (file: StageFile) => {
+    if (!file.allowedUserIds || file.allowedUserIds.length === 0) {
+      return true;
+    }
+    return currentUser?.id ? file.allowedUserIds.includes(currentUser.id) : false;
+  };
+
   const getFilesForChecklistItem = (itemKey: string) => {
-    return (stage.files || []).filter(f => f.checklistItemKey === itemKey);
+    return (stage.files || []).filter(f => f.checklistItemKey === itemKey && filterByAccess(f));
   };
 
   const getFilePreviewIcon = (file: StageFile) => {
@@ -483,6 +497,11 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
     return itemKey.replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()).trim();
   };
 
+  const isFactoryProposalStage = () => {
+    const templateName = stage.template?.name || stage.name;
+    return templateName === "Factory Proposal";
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, checklistItemKey?: string) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -518,6 +537,32 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
       }
       
       const fileUrl = url.split("?")[0];
+      
+      if (isFactoryProposalStage()) {
+        setPendingFileUpload({ file, fileUrl, checklistItemKey });
+        setSelectedAccessUsers([]);
+        setShowAccessDialog(true);
+        event.target.value = "";
+        return;
+      }
+      
+      await completeFileUpload(file, fileUrl, checklistItemKey);
+    } catch (error) {
+      console.error("File upload error:", error);
+      toast({ 
+        title: t("stages.fileUploadFailed"), 
+        description: error instanceof Error ? error.message : undefined,
+        variant: "destructive" 
+      });
+      setIsUploading(false);
+      setUploadingChecklistItem(null);
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  const completeFileUpload = async (file: File, fileUrl: string, checklistItemKey?: string, allowedUserIds?: string[]) => {
+    try {
       const recordResponse = await fetch(`/api/stages/${stage.id}/files`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -527,6 +572,7 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
           fileType: file.type,
           fileSize: file.size,
           checklistItemKey: checklistItemKey || null,
+          allowedUserIds: allowedUserIds || null,
         }),
         credentials: "include",
       });
@@ -548,8 +594,43 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
     } finally {
       setIsUploading(false);
       setUploadingChecklistItem(null);
-      event.target.value = "";
+      setPendingFileUpload(null);
     }
+  };
+
+  const handleAccessDialogConfirm = async () => {
+    if (!pendingFileUpload) return;
+    
+    if (selectedAccessUsers.length === 0) {
+      toast({ 
+        title: t("stages.accessControl.selectUsersRequired"),
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    setShowAccessDialog(false);
+    await completeFileUpload(
+      pendingFileUpload.file, 
+      pendingFileUpload.fileUrl, 
+      pendingFileUpload.checklistItemKey,
+      selectedAccessUsers
+    );
+  };
+
+  const handleAccessDialogCancel = () => {
+    setShowAccessDialog(false);
+    setPendingFileUpload(null);
+    setIsUploading(false);
+    setUploadingChecklistItem(null);
+  };
+
+  const toggleUserAccess = (userId: string) => {
+    setSelectedAccessUsers(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
   };
 
   const getUserName = (userId: string | null | undefined) => {
@@ -727,7 +808,7 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
   };
 
   const dateRange = formatDateRange();
-  const stageFiles = (stage.files || []).filter(f => !f.checklistItemKey);
+  const stageFiles = (stage.files || []).filter(f => !f.checklistItemKey && filterByAccess(f));
 
   return (
     <>
@@ -1371,6 +1452,62 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
               disabled={createTaskMutation.isPending || !taskDescription || !taskAssignee}
             >
               {t("stages.assignTask")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showAccessDialog} onOpenChange={(open) => !open && handleAccessDialogCancel()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("stages.accessControl.title")}</DialogTitle>
+            <DialogDescription>
+              {t("stages.accessControl.description")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 max-h-64 overflow-y-auto py-2">
+            {users.map((user) => (
+              <div 
+                key={user.id} 
+                className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
+                onClick={() => toggleUserAccess(user.id)}
+                data-testid={`access-user-${user.id}`}
+              >
+                <Checkbox 
+                  checked={selectedAccessUsers.includes(user.id)}
+                  onCheckedChange={() => toggleUserAccess(user.id)}
+                />
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user.profileImageUrl || undefined} />
+                  <AvatarFallback className="text-xs">
+                    {user.firstName && user.lastName
+                      ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
+                      : user.email?.[0]?.toUpperCase() || "?"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">
+                    {user.firstName && user.lastName
+                      ? `${user.firstName} ${user.lastName}`
+                      : user.email}
+                  </p>
+                  {user.firstName && user.lastName && (
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleAccessDialogCancel}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={handleAccessDialogConfirm}
+              disabled={selectedAccessUsers.length === 0}
+              data-testid="button-confirm-access"
+            >
+              {t("stages.accessControl.confirm")} ({selectedAccessUsers.length})
             </Button>
           </DialogFooter>
         </DialogContent>
