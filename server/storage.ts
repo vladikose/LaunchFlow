@@ -4,6 +4,8 @@ import {
   users,
   companies,
   companyInvites,
+  factories,
+  productTypes,
   projects,
   products,
   stageTemplates,
@@ -19,6 +21,10 @@ import {
   type InsertCompany,
   type CompanyInvite,
   type InsertCompanyInvite,
+  type Factory,
+  type InsertFactory,
+  type ProductType,
+  type InsertProductType,
   type Project,
   type InsertProject,
   type Product,
@@ -50,6 +56,18 @@ export interface IStorage {
   createCompany(company: InsertCompany): Promise<Company>;
   getCompanyById(id: string): Promise<Company | undefined>;
   updateCompany(id: string, data: Partial<Company>): Promise<Company | undefined>;
+
+  createFactory(factory: InsertFactory): Promise<Factory>;
+  getFactoriesByCompany(companyId: string): Promise<Factory[]>;
+  getFactoryById(id: string): Promise<Factory | undefined>;
+  updateFactory(id: string, data: Partial<Factory>): Promise<Factory | undefined>;
+  deleteFactory(id: string): Promise<void>;
+
+  createProductType(productType: InsertProductType): Promise<ProductType>;
+  getProductTypesByCompany(companyId: string): Promise<ProductType[]>;
+  getProductTypeById(id: string): Promise<ProductType | undefined>;
+  updateProductType(id: string, data: Partial<ProductType>): Promise<ProductType | undefined>;
+  deleteProductType(id: string): Promise<void>;
 
   createProject(project: InsertProject): Promise<Project>;
   getProjectsByCompany(companyId: string): Promise<Project[]>;
@@ -187,6 +205,60 @@ export class DatabaseStorage implements IStorage {
     return company;
   }
 
+  async createFactory(factory: InsertFactory): Promise<Factory> {
+    const [newFactory] = await db.insert(factories).values(factory).returning();
+    return newFactory;
+  }
+
+  async getFactoriesByCompany(companyId: string): Promise<Factory[]> {
+    return db.select().from(factories).where(eq(factories.companyId, companyId)).orderBy(factories.name);
+  }
+
+  async getFactoryById(id: string): Promise<Factory | undefined> {
+    const [factory] = await db.select().from(factories).where(eq(factories.id, id));
+    return factory;
+  }
+
+  async updateFactory(id: string, data: Partial<Factory>): Promise<Factory | undefined> {
+    const [factory] = await db
+      .update(factories)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(factories.id, id))
+      .returning();
+    return factory;
+  }
+
+  async deleteFactory(id: string): Promise<void> {
+    await db.delete(factories).where(eq(factories.id, id));
+  }
+
+  async createProductType(productType: InsertProductType): Promise<ProductType> {
+    const [newProductType] = await db.insert(productTypes).values(productType).returning();
+    return newProductType;
+  }
+
+  async getProductTypesByCompany(companyId: string): Promise<ProductType[]> {
+    return db.select().from(productTypes).where(eq(productTypes.companyId, companyId)).orderBy(productTypes.name);
+  }
+
+  async getProductTypeById(id: string): Promise<ProductType | undefined> {
+    const [productType] = await db.select().from(productTypes).where(eq(productTypes.id, id));
+    return productType;
+  }
+
+  async updateProductType(id: string, data: Partial<ProductType>): Promise<ProductType | undefined> {
+    const [productType] = await db
+      .update(productTypes)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(productTypes.id, id))
+      .returning();
+    return productType;
+  }
+
+  async deleteProductType(id: string): Promise<void> {
+    await db.delete(productTypes).where(eq(productTypes.id, id));
+  }
+
   async createProject(project: InsertProject): Promise<Project> {
     const [newProject] = await db.insert(projects).values(project).returning();
     return newProject;
@@ -287,10 +359,24 @@ export class DatabaseStorage implements IStorage {
       const user = await this.getUser(project.responsibleUserId);
       responsibleUser = user || null;
     }
+    
+    let factory: Factory | null = null;
+    if (project.factoryId) {
+      const f = await this.getFactoryById(project.factoryId);
+      factory = f || null;
+    }
+    
+    let productType: ProductType | null = null;
+    if (project.productTypeId) {
+      const pt = await this.getProductTypeById(project.productTypeId);
+      productType = pt || null;
+    }
 
     return {
       ...project,
       responsibleUser,
+      factory,
+      productType,
       products: projectProducts,
       stages: projectStages,
     };
