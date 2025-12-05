@@ -498,8 +498,13 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
   };
 
   const isFactoryProposalStage = () => {
-    const templateName = stage.template?.name || stage.name;
-    return templateName === "Factory Proposal";
+    const templateName = stage.template?.name || stage.name || "";
+    const templateNameRu = stage.template?.nameRu || "";
+    return (
+      templateName === "Factory Proposal" || 
+      templateName === "Quotation" ||
+      templateNameRu === "Предложение от завода"
+    );
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, checklistItemKey?: string) => {
