@@ -1480,6 +1480,7 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
               >
                 <Checkbox 
                   checked={selectedAccessUsers.includes(user.id)}
+                  onClick={(e) => e.stopPropagation()}
                   onCheckedChange={() => toggleUserAccess(user.id)}
                 />
                 <Avatar className="h-8 w-8">
