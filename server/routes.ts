@@ -1300,7 +1300,8 @@ export async function registerRoutes(
     description: z.string().optional(),
     completed: z.boolean().optional(),
     status: z.enum(["pending", "completed", "needs_revision"]).optional(),
-    revisionNote: z.string().optional(),
+    revisionNote: z.string().nullable().optional(),
+    revisionResponse: z.string().nullable().optional(),
   });
 
   app.patch("/api/tasks/:id", isAuthenticated, async (req: Request, res: Response) => {
