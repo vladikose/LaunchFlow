@@ -40,7 +40,7 @@ import { Slider } from "@/components/ui/slider";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Project } from "@shared/schema";
+import type { Project, Factory, ProductType, User as UserType } from "@shared/schema";
 
 type ProjectWithExtras = Project & {
   stages: Array<{ status: string; templateId: string | null }>;
@@ -60,6 +60,9 @@ export default function Projects() {
   
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterType>(urlFilter || "all");
+  const [factoryFilter, setFactoryFilter] = useState<string>("all");
+  const [productTypeFilter, setProductTypeFilter] = useState<string>("all");
+  const [responsibleFilter, setResponsibleFilter] = useState<string>("all");
   const [columns, setColumns] = useState(() => {
     const saved = localStorage.getItem("projectsColumns");
     return saved ? parseInt(saved, 10) : 4;
@@ -129,6 +132,18 @@ export default function Projects() {
     queryKey: ["/api/projects"],
   });
 
+  const { data: factories } = useQuery<Factory[]>({
+    queryKey: ["/api/factories"],
+  });
+
+  const { data: productTypes } = useQuery<ProductType[]>({
+    queryKey: ["/api/product-types"],
+  });
+
+  const { data: users } = useQuery<UserType[]>({
+    queryKey: ["/api/users"],
+  });
+
   const getProgress = (project: ProjectWithExtras) => {
     if (!project.stages || project.stages.length === 0) return 0;
     const completed = project.stages.filter(s => s.status === 'completed').length;
@@ -163,23 +178,22 @@ export default function Projects() {
       .toLowerCase()
       .includes(search.toLowerCase());
     
+    const matchesFactory = factoryFilter === "all" || project.factoryId === factoryFilter;
+    const matchesProductType = productTypeFilter === "all" || project.productTypeId === productTypeFilter;
+    const matchesResponsible = responsibleFilter === "all" || project.responsibleUserId === responsibleFilter;
+    
+    let matchesStatus = true;
     if (filter === "my") {
-      return matchesSearch && project.responsibleUserId === currentUser?.id;
+      matchesStatus = project.responsibleUserId === currentUser?.id;
+    } else if (filter === "overdue") {
+      matchesStatus = isOverdue(project);
+    } else if (filter === "active") {
+      matchesStatus = isActive(project);
+    } else if (filter === "completed") {
+      matchesStatus = isCompleted(project);
     }
     
-    if (filter === "overdue") {
-      return matchesSearch && isOverdue(project);
-    }
-    
-    if (filter === "active") {
-      return matchesSearch && isActive(project);
-    }
-    
-    if (filter === "completed") {
-      return matchesSearch && isCompleted(project);
-    }
-    
-    return matchesSearch;
+    return matchesSearch && matchesFactory && matchesProductType && matchesResponsible && matchesStatus;
   });
 
   return (
@@ -199,42 +213,90 @@ export default function Projects() {
         </Button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={t("common.search")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-            data-testid="input-search-projects"
-          />
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder={t("common.search")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+              data-testid="input-search-projects"
+            />
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-40">
+            <LayoutGrid className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <Slider
+              value={[columns]}
+              onValueChange={(value) => setColumns(value[0])}
+              min={2}
+              max={6}
+              step={1}
+              className="flex-1"
+              data-testid="slider-columns"
+            />
+            <span className="text-sm text-muted-foreground w-4">{columns}</span>
+          </div>
+          <Select value={filter} onValueChange={(v) => setFilter(v as FilterType)}>
+            <SelectTrigger className="w-full sm:w-48" data-testid="select-filter">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("projects.filters.all")}</SelectItem>
+              <SelectItem value="active">{t("projects.filters.active")}</SelectItem>
+              <SelectItem value="completed">{t("projects.filters.completed")}</SelectItem>
+              <SelectItem value="overdue">{t("projects.filters.overdue")}</SelectItem>
+              <SelectItem value="my">{t("projects.filters.myProjects")}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
-        <div className="flex items-center gap-2 w-full sm:w-40">
-          <LayoutGrid className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          <Slider
-            value={[columns]}
-            onValueChange={(value) => setColumns(value[0])}
-            min={2}
-            max={6}
-            step={1}
-            className="flex-1"
-            data-testid="slider-columns"
-          />
-          <span className="text-sm text-muted-foreground w-4">{columns}</span>
+        
+        <div className="flex flex-wrap gap-4">
+          <Select value={factoryFilter} onValueChange={setFactoryFilter}>
+            <SelectTrigger className="w-full sm:w-48" data-testid="select-factory-filter">
+              <SelectValue placeholder={t("projects.filters.allFactories")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("projects.filters.allFactories")}</SelectItem>
+              {factories?.map((factory) => (
+                <SelectItem key={factory.id} value={factory.id}>
+                  {factory.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select value={productTypeFilter} onValueChange={setProductTypeFilter}>
+            <SelectTrigger className="w-full sm:w-48" data-testid="select-product-type-filter">
+              <SelectValue placeholder={t("projects.filters.allProductTypes")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("projects.filters.allProductTypes")}</SelectItem>
+              {productTypes?.map((pt) => (
+                <SelectItem key={pt.id} value={pt.id}>
+                  {pt.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Select value={responsibleFilter} onValueChange={setResponsibleFilter}>
+            <SelectTrigger className="w-full sm:w-48" data-testid="select-responsible-filter">
+              <SelectValue placeholder={t("projects.filters.allResponsibles")} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("projects.filters.allResponsibles")}</SelectItem>
+              {users?.map((user) => (
+                <SelectItem key={user.id} value={user.id}>
+                  {user.firstName && user.lastName
+                    ? `${user.firstName} ${user.lastName}`
+                    : user.email}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={filter} onValueChange={(v) => setFilter(v as FilterType)}>
-          <SelectTrigger className="w-full sm:w-48" data-testid="select-filter">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("projects.filters.all")}</SelectItem>
-            <SelectItem value="active">{t("projects.filters.active")}</SelectItem>
-            <SelectItem value="completed">{t("projects.filters.completed")}</SelectItem>
-            <SelectItem value="overdue">{t("projects.filters.overdue")}</SelectItem>
-            <SelectItem value="my">{t("projects.filters.myProjects")}</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       {isLoading ? (
