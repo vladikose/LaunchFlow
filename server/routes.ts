@@ -836,6 +836,8 @@ export async function registerRoutes(
     name: z.string().min(1),
     description: z.string().optional(),
     responsibleUserId: z.string().optional(),
+    factoryId: z.string().optional(),
+    productTypeId: z.string().optional(),
     deadline: z.string().optional(),
     products: z.array(
       z.object({
@@ -844,6 +846,7 @@ export async function registerRoutes(
         barcode: z.string().optional(),
       })
     ).optional(),
+    excludedTemplateIds: z.array(z.string()).optional(),
   });
 
   app.post("/api/projects", isAuthenticated, async (req: Request, res: Response) => {
@@ -861,6 +864,8 @@ export async function registerRoutes(
         name: validatedData.name,
         description: validatedData.description || null,
         responsibleUserId: validatedData.responsibleUserId || null,
+        factoryId: validatedData.factoryId || null,
+        productTypeId: validatedData.productTypeId || null,
         deadline: validatedData.deadline ? new Date(validatedData.deadline) : null,
         createdById: authUser.id,
       });
@@ -878,13 +883,17 @@ export async function registerRoutes(
         }
       }
 
+      const excludedIds = validatedData.excludedTemplateIds || [];
       const templates = await storage.getStageTemplatesByCompany(companyId);
-      for (const template of templates) {
+      const includedTemplates = templates.filter(t => !excludedIds.includes(t.id));
+      
+      let position = 1;
+      for (const template of includedTemplates) {
         await storage.createStage({
           projectId: project.id,
           templateId: template.id,
           name: template.name,
-          position: template.position,
+          position: position++,
           status: "waiting",
           startDate: null,
           deadline: null,
@@ -1762,6 +1771,195 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error serving public file:", error);
       res.status(500).json({ message: "Failed to serve file" });
+    }
+  });
+
+  app.post("/api/company/export-data", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const companyId = await requireUserCompany(authUser.id);
+      const { projectIds } = req.body as { projectIds: string[] };
+
+      if (!projectIds || !Array.isArray(projectIds) || projectIds.length === 0) {
+        return res.status(400).json({ message: "Project IDs are required" });
+      }
+
+      const exportData: any[] = [];
+
+      for (const projectId of projectIds) {
+        const project = await storage.getProjectById(projectId);
+        if (!project || project.companyId !== companyId) {
+          continue;
+        }
+
+        const projectData = {
+          project: {
+            id: project.id,
+            name: project.name,
+            description: project.description,
+            deadline: project.deadline,
+            createdAt: project.createdAt,
+            updatedAt: project.updatedAt,
+          },
+          responsibleUser: project.responsibleUser ? {
+            id: project.responsibleUser.id,
+            firstName: project.responsibleUser.firstName,
+            lastName: project.responsibleUser.lastName,
+            email: project.responsibleUser.email,
+          } : null,
+          factory: project.factory ? {
+            id: project.factory.id,
+            name: project.factory.name,
+            country: project.factory.country,
+          } : null,
+          productType: project.productType ? {
+            id: project.productType.id,
+            name: project.productType.name,
+          } : null,
+          products: project.products?.map(p => ({
+            id: p.id,
+            article: p.article,
+            name: p.name,
+            barcode: p.barcode,
+          })) || [],
+          stages: await Promise.all((project.stages || []).map(async (stage) => {
+            const comments = await storage.getCommentsByStage(stage.id);
+            const tasks = await storage.getTasksByStage(stage.id);
+
+            return {
+              id: stage.id,
+              name: stage.name,
+              position: stage.position,
+              status: stage.status,
+              startDate: stage.startDate,
+              deadline: stage.deadline,
+              checklistData: stage.checklistData,
+              customFieldsData: stage.customFieldsData,
+              files: stage.files?.map(f => ({
+                id: f.id,
+                fileName: f.fileName,
+                fileUrl: f.fileUrl,
+                fileType: f.fileType,
+                uploadedAt: f.uploadedAt,
+              })) || [],
+              comments: comments.map(c => ({
+                id: c.id,
+                content: c.content,
+                createdAt: c.createdAt,
+                user: c.user ? {
+                  firstName: c.user.firstName,
+                  lastName: c.user.lastName,
+                  email: c.user.email,
+                } : null,
+              })),
+              tasks: tasks.map(t => ({
+                id: t.id,
+                description: t.description,
+                completed: t.completed,
+                status: t.status,
+                dueDate: t.dueDate,
+                assignee: t.assignedUser ? {
+                  firstName: t.assignedUser.firstName,
+                  lastName: t.assignedUser.lastName,
+                  email: t.assignedUser.email,
+                } : null,
+              })),
+            };
+          })),
+        };
+
+        exportData.push(projectData);
+      }
+
+      const jsonData = JSON.stringify(exportData, null, 2);
+      const buffer = Buffer.from(jsonData, 'utf-8');
+
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="project-export-${new Date().toISOString().split('T')[0]}.json"`);
+      res.send(buffer);
+    } catch (error) {
+      console.error("Error exporting data:", error);
+      res.status(500).json({ message: "Failed to export data" });
+    }
+  });
+
+  app.post("/api/company/export", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const companyId = await requireUserCompany(authUser.id);
+      const { projectIds } = req.body as { projectIds: string[] };
+
+      if (!projectIds || !Array.isArray(projectIds) || projectIds.length === 0) {
+        return res.status(400).json({ message: "Project IDs are required" });
+      }
+
+      const archiver = require('archiver');
+      const archive = archiver('zip', { zlib: { level: 9 } });
+
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="company-export-${new Date().toISOString().split('T')[0]}.zip"`);
+
+      archive.pipe(res);
+
+      for (const projectId of projectIds) {
+        const project = await storage.getProjectById(projectId);
+        if (!project || project.companyId !== companyId) {
+          continue;
+        }
+
+        const projectFolder = project.name.replace(/[^a-zA-Z0-9\u0400-\u04FF\u4e00-\u9fff\s-]/g, '_');
+
+        const projectInfo = {
+          name: project.name,
+          description: project.description,
+          deadline: project.deadline,
+          responsibleUser: project.responsibleUser ? `${project.responsibleUser.firstName} ${project.responsibleUser.lastName}` : null,
+          factory: project.factory?.name || null,
+          productType: project.productType?.name || null,
+          products: project.products?.map(p => ({
+            article: p.article,
+            name: p.name,
+            barcode: p.barcode,
+          })) || [],
+        };
+        archive.append(JSON.stringify(projectInfo, null, 2), { name: `${projectFolder}/project-info.json` });
+
+        for (const stage of project.stages || []) {
+          const stageName = stage.name.replace(/[^a-zA-Z0-9\u0400-\u04FF\u4e00-\u9fff\s-]/g, '_');
+
+          for (const file of stage.files || []) {
+            try {
+              let fileUrl = file.fileUrl;
+              if (fileUrl.startsWith('/objects/')) {
+                const objectFile = await objectStorageService.getObjectEntityFile(fileUrl);
+                if (objectFile) {
+                  const stream = await objectStorageService.getObjectStream(objectFile);
+                  if (stream) {
+                    archive.append(stream, { name: `${projectFolder}/${stageName}/${file.fileName}` });
+                  }
+                }
+              }
+            } catch (fileError) {
+              console.error(`Error adding file ${file.fileName} to archive:`, fileError);
+            }
+          }
+        }
+      }
+
+      await archive.finalize();
+    } catch (error) {
+      console.error("Error exporting files:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ message: "Failed to export files" });
+      }
     }
   });
 

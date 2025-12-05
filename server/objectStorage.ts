@@ -198,6 +198,19 @@ export class ObjectStorageService {
       requestedPermission: requestedPermission ?? ObjectPermission.READ,
     });
   }
+
+  async getObjectStream(file: File): Promise<NodeJS.ReadableStream | null> {
+    try {
+      const [exists] = await file.exists();
+      if (!exists) {
+        return null;
+      }
+      return file.createReadStream();
+    } catch (error) {
+      console.error("Error creating object stream:", error);
+      return null;
+    }
+  }
 }
 
 function parseObjectPath(path: string): {

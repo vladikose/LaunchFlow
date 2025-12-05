@@ -34,6 +34,7 @@ import {
   Rocket,
   LogOut,
   ChevronUp,
+  FileArchive,
 } from "lucide-react";
 import { getObjectUrl } from "@/lib/objectStorage";
 
@@ -57,6 +58,11 @@ export function AppSidebar() {
       title: t("nav.myTasks"),
       url: "/tasks",
       icon: CheckSquare,
+    },
+    {
+      title: t("nav.companyCabinet"),
+      url: "/company-cabinet",
+      icon: FileArchive,
     },
   ];
 

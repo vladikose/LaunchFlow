@@ -14,6 +14,7 @@ import Tasks from "@/pages/Tasks";
 import AdminUsers from "@/pages/AdminUsers";
 import AdminStages from "@/pages/AdminStages";
 import AdminCompany from "@/pages/AdminCompany";
+import CompanyCabinet from "@/pages/CompanyCabinet";
 import Settings from "@/pages/Settings";
 import Invite from "@/pages/Invite";
 import Onboarding from "@/pages/Onboarding";
@@ -71,6 +72,7 @@ function Router() {
           <Route path="/admin/users" component={AdminUsers} />
           <Route path="/admin/stages" component={AdminStages} />
           <Route path="/admin/company" component={AdminCompany} />
+          <Route path="/company-cabinet" component={CompanyCabinet} />
           <Route path="/settings" component={Settings} />
           <Route path="/invite/:token" component={Invite} />
           <Route component={NotFound} />
