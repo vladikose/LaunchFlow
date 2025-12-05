@@ -48,6 +48,9 @@ export default function Tasks() {
   const [selectedTaskForCompleteRevision, setSelectedTaskForCompleteRevision] = useState<TaskWithUsers | null>(null);
   const [revisionResponse, setRevisionResponse] = useState("");
   const [revisionResponses, setRevisionResponses] = useState<Record<string, string>>({});
+  const [resendDialogOpen, setResendDialogOpen] = useState(false);
+  const [selectedTaskForResend, setSelectedTaskForResend] = useState<TaskWithUsers | null>(null);
+  const [resendDescription, setResendDescription] = useState("");
 
   const { data: incomingTasks, isLoading: isLoadingIncoming } = useQuery<TaskWithUsers[]>({
     queryKey: ["/api/tasks"],
@@ -92,15 +95,19 @@ export default function Tasks() {
   });
 
   const resendTaskMutation = useMutation({
-    mutationFn: async (taskId: string) => {
+    mutationFn: async ({ taskId, description }: { taskId: string; description: string }) => {
       return apiRequest("PATCH", `/api/tasks/${taskId}`, { 
         status: "pending",
-        revisionNote: null
+        revisionNote: null,
+        description
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
       queryClient.invalidateQueries({ queryKey: ["/api/tasks/outgoing"] });
+      setResendDialogOpen(false);
+      setSelectedTaskForResend(null);
+      setResendDescription("");
       toast({ title: t("tasks.taskResent") });
     },
     onError: () => {
@@ -350,8 +357,11 @@ export default function Tasks() {
                   <Button
                     size="sm"
                     variant="default"
-                    onClick={() => resendTaskMutation.mutate(task.id)}
-                    disabled={resendTaskMutation.isPending}
+                    onClick={() => {
+                      setSelectedTaskForResend(task);
+                      setResendDescription(task.description);
+                      setResendDialogOpen(true);
+                    }}
                     data-testid={`button-resend-task-${task.id}`}
                   >
                     <Send className="h-3.5 w-3.5 mr-1" />
@@ -585,6 +595,56 @@ export default function Tasks() {
             >
               <CheckSquare className="h-4 w-4 mr-1" />
               {t("tasks.markAsCompleted")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={resendDialogOpen} onOpenChange={setResendDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("tasks.resendTaskTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("tasks.resendTaskDescription")}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedTaskForResend?.revisionNote && (
+            <div className="bg-yellow-100 dark:bg-yellow-950 p-3 rounded-md text-sm mb-2">
+              <div className="flex items-center gap-1 text-yellow-700 dark:text-yellow-400 font-medium mb-1">
+                <MessageSquare className="h-3.5 w-3.5" />
+                {t("tasks.revisionNote")}:
+              </div>
+              <p className="text-yellow-800 dark:text-yellow-300">{selectedTaskForResend.revisionNote}</p>
+            </div>
+          )}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{t("tasks.taskDescription")}</label>
+            <Textarea
+              placeholder={t("tasks.taskDescriptionPlaceholder")}
+              value={resendDescription}
+              onChange={(e) => setResendDescription(e.target.value)}
+              className="min-h-[100px]"
+              data-testid="textarea-resend-description"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResendDialogOpen(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={() => {
+                if (selectedTaskForResend) {
+                  resendTaskMutation.mutate({
+                    taskId: selectedTaskForResend.id,
+                    description: resendDescription
+                  });
+                }
+              }}
+              disabled={resendTaskMutation.isPending}
+              data-testid="button-confirm-resend"
+            >
+              <Send className="h-4 w-4 mr-1" />
+              {t("tasks.resendTask")}
             </Button>
           </DialogFooter>
         </DialogContent>
