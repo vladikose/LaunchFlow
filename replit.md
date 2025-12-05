@@ -134,9 +134,18 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### User Settings Page (Latest)
+### Preset Avatar Selection (Latest)
+- 8 cute cat avatar presets available in Settings page
+- Users can choose from generated cat avatars instead of uploading photos
+- Preset avatars stored as static assets in attached_assets/generated_images/
+- Avatar types: Orange, Gray, Black, White, Calico, Siamese, Cool (with sunglasses), Tuxedo
+- Selection shows checkmark overlay on currently selected avatar
+- Full multi-language support (EN/RU/ZH) for preset avatar UI
+
+### User Settings Page
 - New Settings page at `/settings` for user profile management
 - Profile Photo section with avatar upload to object storage
+- Preset avatar selection grid for quick avatar choice
 - Personal Information section with editable fields:
   - First name and last name
   - Job title (new field added to users database schema)

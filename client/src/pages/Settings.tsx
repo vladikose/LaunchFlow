@@ -13,8 +13,28 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getObjectUrl } from "@/lib/objectStorage";
-import { User, Camera, Mail, Briefcase, Info } from "lucide-react";
+import { User, Camera, Mail, Briefcase, Info, Check } from "lucide-react";
 import type { User as UserType } from "@shared/schema";
+
+import orangeCatAvatar from "@assets/generated_images/orange_tabby_cat_avatar.png";
+import grayCatAvatar from "@assets/generated_images/gray_fluffy_cat_avatar.png";
+import blackCatAvatar from "@assets/generated_images/black_cat_avatar.png";
+import whiteCatAvatar from "@assets/generated_images/white_cat_avatar.png";
+import calicoCatAvatar from "@assets/generated_images/calico_cat_avatar.png";
+import siameseCatAvatar from "@assets/generated_images/siamese_cat_avatar.png";
+import coolCatAvatar from "@assets/generated_images/cool_ginger_cat_avatar.png";
+import tuxedoCatAvatar from "@assets/generated_images/tuxedo_cat_avatar.png";
+
+const PRESET_AVATARS = [
+  { id: "orange", src: orangeCatAvatar, name: "Orange Cat" },
+  { id: "gray", src: grayCatAvatar, name: "Gray Cat" },
+  { id: "black", src: blackCatAvatar, name: "Black Cat" },
+  { id: "white", src: whiteCatAvatar, name: "White Cat" },
+  { id: "calico", src: calicoCatAvatar, name: "Calico Cat" },
+  { id: "siamese", src: siameseCatAvatar, name: "Siamese Cat" },
+  { id: "cool", src: coolCatAvatar, name: "Cool Cat" },
+  { id: "tuxedo", src: tuxedoCatAvatar, name: "Tuxedo Cat" },
+];
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -81,6 +101,14 @@ export default function Settings() {
       });
     },
   });
+
+  const handlePresetAvatarSelect = (avatarSrc: string) => {
+    updateAvatarMutation.mutate(avatarSrc);
+  };
+
+  const isPresetAvatarSelected = (avatarSrc: string) => {
+    return user?.profileImageUrl === avatarSrc;
+  };
 
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -179,36 +207,69 @@ export default function Settings() {
             </CardTitle>
             <CardDescription>{t("settings.avatarDesc")}</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col items-center gap-4">
-            <div className="relative">
-              <Avatar className="h-32 w-32">
-                <AvatarImage src={getObjectUrl(user?.profileImageUrl)} alt={user?.firstName || ""} />
-                <AvatarFallback className="text-2xl">
-                  {getInitials(user?.firstName, user?.lastName)}
-                </AvatarFallback>
-              </Avatar>
-              <label
-                htmlFor="avatar-upload"
-                className="absolute bottom-0 right-0 h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer hover-elevate transition-all"
-              >
-                <Camera className="h-5 w-5" />
-                <input
-                  id="avatar-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarUpload}
-                  disabled={isUploading}
-                  data-testid="input-avatar-upload"
-                />
-              </label>
+          <CardContent className="space-y-6">
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative">
+                <Avatar className="h-32 w-32">
+                  <AvatarImage src={getObjectUrl(user?.profileImageUrl)} alt={user?.firstName || ""} />
+                  <AvatarFallback className="text-2xl">
+                    {getInitials(user?.firstName, user?.lastName)}
+                  </AvatarFallback>
+                </Avatar>
+                <label
+                  htmlFor="avatar-upload"
+                  className="absolute bottom-0 right-0 h-10 w-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer hover-elevate transition-all"
+                >
+                  <Camera className="h-5 w-5" />
+                  <input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                    disabled={isUploading}
+                    data-testid="input-avatar-upload"
+                  />
+                </label>
+              </div>
+              {isUploading && (
+                <p className="text-sm text-muted-foreground">{t("settings.uploading")}</p>
+              )}
+              <p className="text-xs text-muted-foreground text-center">
+                {t("settings.avatarHint")}
+              </p>
             </div>
-            {isUploading && (
-              <p className="text-sm text-muted-foreground">{t("settings.uploading")}</p>
-            )}
-            <p className="text-xs text-muted-foreground text-center">
-              {t("settings.avatarHint")}
-            </p>
+
+            <div className="border-t pt-4">
+              <p className="text-sm font-medium mb-3">{t("settings.presetAvatars")}</p>
+              <div className="grid grid-cols-4 gap-3">
+                {PRESET_AVATARS.map((avatar) => (
+                  <button
+                    key={avatar.id}
+                    type="button"
+                    onClick={() => handlePresetAvatarSelect(avatar.src)}
+                    disabled={updateAvatarMutation.isPending}
+                    className={`relative rounded-full overflow-hidden border-2 transition-all hover-elevate ${
+                      isPresetAvatarSelected(avatar.src)
+                        ? "border-primary ring-2 ring-primary ring-offset-2"
+                        : "border-transparent hover:border-muted-foreground/30"
+                    }`}
+                    data-testid={`button-preset-avatar-${avatar.id}`}
+                  >
+                    <img
+                      src={avatar.src}
+                      alt={avatar.name}
+                      className="w-full aspect-square object-cover"
+                    />
+                    {isPresetAvatarSelected(avatar.src) && (
+                      <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                        <Check className="h-6 w-6 text-primary" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
           </CardContent>
         </Card>
 

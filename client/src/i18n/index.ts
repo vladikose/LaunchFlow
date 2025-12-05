@@ -379,6 +379,7 @@ const resources = {
         uploading: "Uploading...",
         passwordSection: "Password",
         passwordNote: "Password is managed through your authentication provider (Replit). To change your password, please update it in your Replit account settings.",
+        presetAvatars: "Or choose a preset avatar",
       },
       files: {
         uploaded: "Uploaded",
@@ -868,6 +869,7 @@ const resources = {
         uploading: "Загрузка...",
         passwordSection: "Пароль",
         passwordNote: "Пароль управляется через вашего провайдера авторизации (Replit). Чтобы изменить пароль, обновите его в настройках вашего аккаунта Replit.",
+        presetAvatars: "Или выберите готовый аватар",
       },
       files: {
         uploaded: "Загружено",
@@ -1357,6 +1359,7 @@ const resources = {
         uploading: "上传中...",
         passwordSection: "密码",
         passwordNote: "密码通过您的身份验证提供商（Replit）管理。如需更改密码，请在Replit账户设置中更新。",
+        presetAvatars: "或选择预设头像",
       },
       files: {
         uploaded: "已上传",
