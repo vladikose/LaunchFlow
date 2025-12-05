@@ -314,6 +314,9 @@ export const comments = pgTable("comments", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Task status enum
+export const taskStatusEnum = pgEnum("task_status", ["pending", "completed", "needs_revision"]);
+
 // Tasks table
 export const tasks = pgTable("tasks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -323,7 +326,10 @@ export const tasks = pgTable("tasks", {
   description: text("description").notNull(),
   completed: boolean("completed").default(false),
   completedAt: timestamp("completed_at"),
+  status: taskStatusEnum("status").default("pending"),
+  revisionNote: text("revision_note"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Deadline history (for tracking changes)

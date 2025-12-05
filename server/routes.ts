@@ -1273,9 +1273,25 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/tasks/outgoing", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const tasks = await storage.getTasksByAssigner(authUser.id);
+      res.json(tasks);
+    } catch (error) {
+      console.error("Error getting outgoing tasks:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   const updateTaskSchema = z.object({
     description: z.string().optional(),
     completed: z.boolean().optional(),
+    status: z.enum(["pending", "completed", "needs_revision"]).optional(),
+    revisionNote: z.string().optional(),
   });
 
   app.patch("/api/tasks/:id", isAuthenticated, async (req: Request, res: Response) => {
@@ -1285,22 +1301,95 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Unauthorized" });
       }
       
-      const validatedData = updateTaskSchema.parse(req.body);
-      const updateData: any = { ...validatedData };
-      if (updateData.completed) {
-        updateData.completedAt = new Date();
-      }
-      
-      const task = await storage.updateTask(req.params.id, updateData);
+      const task = await storage.getTaskById(req.params.id);
       if (!task) {
         return res.status(404).json({ message: "Task not found" });
       }
-      res.json(task);
+      
+      if (task.assignedToId !== authUser.id && task.assignedById !== authUser.id) {
+        return res.status(403).json({ message: "You can only update tasks assigned to you or by you" });
+      }
+      
+      const validatedData = updateTaskSchema.parse(req.body);
+      const updateData: any = { ...validatedData };
+      
+      if (updateData.completed === true || updateData.status === "completed") {
+        updateData.completedAt = new Date();
+        updateData.completed = true;
+        updateData.status = "completed";
+      } else if (updateData.completed === false || updateData.status === "pending") {
+        updateData.completedAt = null;
+        updateData.completed = false;
+        updateData.status = "pending";
+      }
+      
+      const updatedTask = await storage.updateTask(req.params.id, updateData);
+      res.json(updatedTask);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
       console.error("Error updating task:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.patch("/api/tasks/:id/request-revision", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const task = await storage.getTaskById(req.params.id);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      if (task.assignedToId !== authUser.id) {
+        return res.status(403).json({ message: "Only the task recipient can request revision" });
+      }
+      
+      const { revisionNote } = req.body;
+      
+      const updatedTask = await storage.updateTask(req.params.id, {
+        status: "needs_revision",
+        revisionNote: revisionNote || null,
+        completed: false,
+        completedAt: null,
+      });
+      
+      res.json(updatedTask);
+    } catch (error) {
+      console.error("Error requesting revision:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.delete("/api/tasks/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const task = await storage.getTaskById(req.params.id);
+      if (!task) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      
+      if (task.assignedById !== authUser.id) {
+        return res.status(403).json({ message: "Only the task sender can delete the task" });
+      }
+      
+      if (task.status === "completed") {
+        return res.status(400).json({ message: "Cannot delete a completed task" });
+      }
+      
+      await storage.deleteTask(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting task:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

@@ -103,9 +103,12 @@ export interface IStorage {
   getCommentsByStage(stageId: string): Promise<Comment[]>;
 
   createTask(task: InsertTask): Promise<Task>;
+  getTaskById(id: string): Promise<Task | undefined>;
   getTasksByAssignee(userId: string): Promise<TaskWithUsers[]>;
+  getTasksByAssigner(userId: string): Promise<TaskWithUsers[]>;
   getTasksByStage(stageId: string): Promise<Task[]>;
   updateTask(id: string, data: Partial<Task>): Promise<Task | undefined>;
+  deleteTask(id: string): Promise<void>;
 
   createDeadlineHistory(history: InsertDeadlineHistory): Promise<void>;
   createStatusHistory(history: InsertStatusHistory): Promise<void>;
@@ -626,8 +629,47 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateTask(id: string, data: Partial<Task>): Promise<Task | undefined> {
-    const [task] = await db.update(tasks).set(data).where(eq(tasks.id, id)).returning();
+    const [task] = await db.update(tasks).set({ ...data, updatedAt: new Date() }).where(eq(tasks.id, id)).returning();
     return task;
+  }
+
+  async getTaskById(id: string): Promise<Task | undefined> {
+    const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
+    return task;
+  }
+
+  async getTasksByAssigner(userId: string): Promise<TaskWithUsers[]> {
+    const userTasks = await db
+      .select()
+      .from(tasks)
+      .where(eq(tasks.assignedById, userId))
+      .orderBy(desc(tasks.createdAt));
+
+    const tasksWithRelations: TaskWithUsers[] = [];
+
+    for (const task of userTasks) {
+      const assignedTo = await this.getUser(task.assignedToId);
+      const assignedBy = await this.getUser(task.assignedById);
+      const [stage] = await db.select().from(stages).where(eq(stages.id, task.stageId));
+      let project: Project | undefined;
+      if (stage) {
+        const [proj] = await db.select().from(projects).where(eq(projects.id, stage.projectId));
+        project = proj;
+      }
+
+      tasksWithRelations.push({
+        ...task,
+        assignedTo,
+        assignedBy,
+        stage: stage ? { ...stage, project } : undefined,
+      });
+    }
+
+    return tasksWithRelations;
+  }
+
+  async deleteTask(id: string): Promise<void> {
+    await db.delete(tasks).where(eq(tasks.id, id));
   }
 
   async createDeadlineHistory(history: InsertDeadlineHistory): Promise<void> {
