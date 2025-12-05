@@ -1333,6 +1333,7 @@ export async function registerRoutes(
     fileType: z.string().optional(),
     fileSize: z.number().optional(),
     checklistItemKey: z.string().nullable().optional(),
+    allowedUserIds: z.array(z.string()).nullable().optional(),
   });
 
   app.post("/api/stages/:id/files", isAuthenticated, async (req: Request, res: Response) => {
@@ -1379,6 +1380,7 @@ export async function registerRoutes(
         version: 1,
         isLatest: true,
         checklistItemKey: validatedData.checklistItemKey || null,
+        allowedUserIds: validatedData.allowedUserIds || null,
       });
       
       res.status(201).json(file);
