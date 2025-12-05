@@ -249,18 +249,18 @@ export default function Tasks() {
                 </div>
               )}
 
+              {task.stage?.project && (
+                <Link
+                  href={`/projects/${task.stage.project.id}`}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary rounded-md font-medium transition-colors"
+                  data-testid={`link-project-${task.stage.project.id}`}
+                >
+                  <FolderKanban className="h-4 w-4" />
+                  <span>{task.stage.project.name}</span>
+                </Link>
+              )}
+
               <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                {task.stage?.project && (
-                  <Link
-                    href={`/projects/${task.stage.project.id}`}
-                    className="flex items-center gap-1 hover:text-primary transition-colors"
-                  >
-                    <FolderKanban className="h-3.5 w-3.5" />
-                    <span className="truncate max-w-[150px]">
-                      {task.stage.project.name}
-                    </span>
-                  </Link>
-                )}
                 {task.stage && (
                   <div className="flex items-center gap-1">
                     <Layers className="h-3.5 w-3.5" />
