@@ -900,6 +900,7 @@ export async function registerRoutes(
     conditionalSubstagesData: z.record(z.any()).optional().nullable(),
     customFieldsData: z.record(z.string()).optional().nullable(),
     distributionData: distributionDataSchema.optional().nullable(),
+    productQuantitiesData: z.record(z.number()).optional().nullable(),
   });
 
   app.patch("/api/stages/:id", isAuthenticated, async (req: Request, res: Response) => {

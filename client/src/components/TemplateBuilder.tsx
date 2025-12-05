@@ -38,6 +38,7 @@ import {
   Settings,
   Eye,
   X,
+  Package,
 } from "lucide-react";
 import type { 
   TemplateBlock, 
@@ -61,6 +62,7 @@ const BLOCK_TYPES: { type: BlockType; icon: React.ElementType; labelKey: string;
   { type: "tasks", icon: Users, labelKey: "builder.blocks.tasks", color: "bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400" },
   { type: "substages", icon: GitBranch, labelKey: "builder.blocks.substages", color: "bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400" },
   { type: "gallery", icon: Image, labelKey: "builder.blocks.gallery", color: "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400" },
+  { type: "products", icon: Package, labelKey: "builder.blocks.products", color: "bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400" },
   { type: "divider", icon: Minus, labelKey: "builder.blocks.divider", color: "bg-gray-100 dark:bg-gray-800 text-gray-500" },
   { type: "header", icon: Type, labelKey: "builder.blocks.header", color: "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400" },
 ];
@@ -89,6 +91,8 @@ function getDefaultConfig(type: BlockType): Record<string, unknown> {
       return { text: "", level: "h3" };
     case "divider":
       return { style: "solid" };
+    case "products":
+      return { showArticle: true, showBarcode: false, showQuantityInput: true };
     default:
       return {};
   }
@@ -229,13 +233,39 @@ function BlockEditor({ block, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst,
             </div>
           </div>
         );
+      case "products":
+        return (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">{t("builder.config.showArticle")}</Label>
+              <Switch
+                checked={(block.config as { showArticle?: boolean }).showArticle ?? true}
+                onCheckedChange={(checked) => updateConfig({ showArticle: checked })}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">{t("builder.config.showBarcode")}</Label>
+              <Switch
+                checked={(block.config as { showBarcode?: boolean }).showBarcode ?? false}
+                onCheckedChange={(checked) => updateConfig({ showBarcode: checked })}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label className="text-sm">{t("builder.config.showQuantityInput")}</Label>
+              <Switch
+                checked={(block.config as { showQuantityInput?: boolean }).showQuantityInput ?? true}
+                onCheckedChange={(checked) => updateConfig({ showQuantityInput: checked })}
+              />
+            </div>
+          </div>
+        );
       default:
         return null;
     }
   };
 
   return (
-    <Card className="border-l-4" style={{ borderLeftColor: blockDef?.color.includes("blue") ? "#3b82f6" : blockDef?.color.includes("green") ? "#22c55e" : blockDef?.color.includes("purple") ? "#a855f7" : blockDef?.color.includes("amber") ? "#f59e0b" : blockDef?.color.includes("cyan") ? "#06b6d4" : blockDef?.color.includes("rose") ? "#f43f5e" : blockDef?.color.includes("indigo") ? "#6366f1" : "#94a3b8" }}>
+    <Card className="border-l-4" style={{ borderLeftColor: blockDef?.color.includes("blue") ? "#3b82f6" : blockDef?.color.includes("green") ? "#22c55e" : blockDef?.color.includes("purple") ? "#a855f7" : blockDef?.color.includes("amber") ? "#f59e0b" : blockDef?.color.includes("cyan") ? "#06b6d4" : blockDef?.color.includes("rose") ? "#f43f5e" : blockDef?.color.includes("indigo") ? "#6366f1" : blockDef?.color.includes("orange") ? "#f97316" : "#94a3b8" }}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <div className="flex items-center gap-2 p-3">
           <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />

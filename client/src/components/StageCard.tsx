@@ -50,8 +50,9 @@ import {
   PlayCircle,
   Clock,
   Trash2,
+  Package,
 } from "lucide-react";
-import type { StageWithRelations, User, StageFile, CustomField, DistributionData, TemplateBlock, ChecklistBlockConfig, ChecklistItemConfig } from "@shared/schema";
+import type { StageWithRelations, User, StageFile, CustomField, DistributionData, TemplateBlock, ChecklistBlockConfig, ChecklistItemConfig, Product, ProductsBlockConfig } from "@shared/schema";
 import { DistributionPrepBlock } from "./DistributionPrepBlock";
 
 interface StageCardProps {
@@ -88,6 +89,9 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
   );
   const [checklistInputValues, setChecklistInputValues] = useState<Record<string, string>>(
     (stage.checklistInputData as Record<string, string>) || {}
+  );
+  const [productQuantities, setProductQuantities] = useState<Record<string, number>>(
+    (stage.productQuantitiesData as Record<string, number>) || {}
   );
 
   const getChecklistItemConfigs = (): Map<string, ChecklistItemConfig> => {
@@ -192,6 +196,13 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
     enabled: showHistory,
   });
 
+  const isOrderPlacementStage = stage.template?.name === "Order Placement";
+  
+  const { data: products } = useQuery<Product[]>({
+    queryKey: ["/api/projects", projectId, "products"],
+    enabled: isOrderPlacementStage,
+  });
+
   const isCompleted = stage.status === "completed";
   const commentsCount = stage.comments?.length || 0;
   const filesCount = stage.files?.length || 0;
@@ -291,6 +302,19 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
     },
   });
 
+  const updateProductQuantitiesMutation = useMutation({
+    mutationFn: async (quantities: Record<string, number>) => {
+      return apiRequest("PATCH", `/api/stages/${stage.id}`, { productQuantitiesData: quantities });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      toast({ title: t("products.quantitySaved") });
+    },
+    onError: () => {
+      toast({ title: t("products.quantitySaveFailed"), variant: "destructive" });
+    },
+  });
+
   const updateChecklistMutation = useMutation({
     mutationFn: async (data: { checklistData?: Record<string, boolean>; checklistInputData?: Record<string, string>; conditionalEnabled?: boolean; conditionalSubstagesData?: Record<string, boolean>; status?: string; customFieldsData?: Record<string, string> }) => {
       return apiRequest("PATCH", `/api/stages/${stage.id}`, data);
@@ -364,6 +388,24 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
     const currentValue = (stage.customFieldsData as Record<string, string>)?.[fieldKey] || "";
     if (customFieldValues[fieldKey] !== currentValue) {
       updateChecklistMutation.mutate({ customFieldsData: customFieldValues });
+    }
+  };
+
+  const handleProductQuantityChange = (productId: string, value: number) => {
+    setProductQuantities(prev => ({ ...prev, [productId]: value }));
+  };
+
+  const handleProductQuantityBlur = (productId: string) => {
+    const currentValue = (stage.productQuantitiesData as Record<string, number>)?.[productId] || 0;
+    const newValue = productQuantities[productId];
+    if (newValue !== undefined && newValue !== currentValue) {
+      updateProductQuantitiesMutation.mutate(productQuantities);
+    }
+  };
+
+  const handleProductQuantityKeyDown = (e: React.KeyboardEvent, productId: string) => {
+    if (e.key === "Enter") {
+      handleProductQuantityBlur(productId);
     }
   };
 
@@ -959,6 +1001,65 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {isOrderPlacementStage && products && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-5 w-5 text-orange-500" />
+                    <h4 className="text-sm font-medium uppercase text-muted-foreground">
+                      {t("products.title")}
+                    </h4>
+                  </div>
+                  
+                  {products.length > 0 ? (
+                    <div className="rounded-lg border overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-muted/50">
+                          <tr>
+                            <th className="px-4 py-2 text-left font-medium text-muted-foreground">
+                              {t("products.article")}
+                            </th>
+                            <th className="px-4 py-2 text-left font-medium text-muted-foreground">
+                              {t("products.name")}
+                            </th>
+                            <th className="px-4 py-2 text-center font-medium text-muted-foreground w-32">
+                              {t("products.quantity")}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {products.map((product) => (
+                            <tr key={product.id} className="hover:bg-muted/30 transition-colors">
+                              <td className="px-4 py-3 font-mono text-sm">
+                                {product.article || "-"}
+                              </td>
+                              <td className="px-4 py-3">
+                                {product.name}
+                              </td>
+                              <td className="px-4 py-3">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  value={productQuantities[product.id] ?? 0}
+                                  onChange={(e) => handleProductQuantityChange(product.id, parseInt(e.target.value) || 0)}
+                                  onBlur={() => handleProductQuantityBlur(product.id)}
+                                  onKeyDown={(e) => handleProductQuantityKeyDown(e, product.id)}
+                                  className="h-8 w-24 text-center mx-auto"
+                                  data-testid={`input-quantity-${product.id}`}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">
+                      {t("products.noProducts")}
+                    </p>
+                  )}
                 </div>
               )}
 

@@ -121,7 +121,8 @@ export type BlockType =
   | 'substages' 
   | 'gallery'
   | 'divider'
-  | 'header';
+  | 'header'
+  | 'products';
 
 // Checklist item configuration
 export type ChecklistItemConfig = {
@@ -188,6 +189,12 @@ export type DividerBlockConfig = {
   style?: 'solid' | 'dashed' | 'dotted';
 };
 
+export type ProductsBlockConfig = {
+  showArticle?: boolean;
+  showBarcode?: boolean;
+  showQuantityInput?: boolean;
+};
+
 // Union type for all block configs
 export type BlockConfig = 
   | CommentsBlockConfig 
@@ -199,6 +206,7 @@ export type BlockConfig =
   | GalleryBlockConfig
   | HeaderBlockConfig
   | DividerBlockConfig
+  | ProductsBlockConfig
   | Record<string, never>;
 
 // Template block definition
@@ -248,6 +256,7 @@ export const stages = pgTable("stages", {
   conditionalSubstagesData: jsonb("conditional_substages_data").$type<Record<string, boolean>>(),
   customFieldsData: jsonb("custom_fields_data").$type<Record<string, string>>(),
   distributionData: jsonb("distribution_data").$type<DistributionData>(),
+  productQuantitiesData: jsonb("product_quantities_data").$type<Record<string, number>>(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
