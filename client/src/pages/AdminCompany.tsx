@@ -19,7 +19,12 @@ import {
   Trash2, 
   Clock, 
   Users,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Factory as FactoryIcon,
+  Package,
+  Plus,
+  Pencil,
+  MapPin
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
@@ -50,7 +55,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import type { Company, CompanyInvite, User } from "@shared/schema";
+import type { Company, CompanyInvite, User, Factory, ProductType } from "@shared/schema";
 
 export default function AdminCompany() {
   const { t } = useTranslation();
@@ -61,6 +66,20 @@ export default function AdminCompany() {
   const [inviteMaxUses, setInviteMaxUses] = useState<number>(1);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [generatedInviteLink, setGeneratedInviteLink] = useState<string | null>(null);
+  
+  const [isFactoryDialogOpen, setIsFactoryDialogOpen] = useState(false);
+  const [editingFactory, setEditingFactory] = useState<Factory | null>(null);
+  const [factoryName, setFactoryName] = useState("");
+  const [factoryAddress, setFactoryAddress] = useState("");
+  const [factoryLatitude, setFactoryLatitude] = useState("");
+  const [factoryLongitude, setFactoryLongitude] = useState("");
+  
+  const [isProductTypeDialogOpen, setIsProductTypeDialogOpen] = useState(false);
+  const [editingProductType, setEditingProductType] = useState<ProductType | null>(null);
+  const [productTypeName, setProductTypeName] = useState("");
+  const [productTypeNameRu, setProductTypeNameRu] = useState("");
+  const [productTypeNameZh, setProductTypeNameZh] = useState("");
+  const [productTypeDescription, setProductTypeDescription] = useState("");
 
   const { data: company, isLoading: companyLoading } = useQuery<Company>({
     queryKey: ["/api/company"],
@@ -72,6 +91,14 @@ export default function AdminCompany() {
 
   const { data: users, isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
+  });
+  
+  const { data: factories, isLoading: factoriesLoading } = useQuery<Factory[]>({
+    queryKey: ["/api/factories"],
+  });
+  
+  const { data: productTypes, isLoading: productTypesLoading } = useQuery<ProductType[]>({
+    queryKey: ["/api/product-types"],
   });
 
   useEffect(() => {
@@ -135,6 +162,92 @@ export default function AdminCompany() {
     },
   });
 
+  const createFactoryMutation = useMutation({
+    mutationFn: async (data: { name: string; address?: string; latitude?: number; longitude?: number }) => {
+      const response = await apiRequest("POST", "/api/factories", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/factories"] });
+      toast({ title: t("admin.company.factories.created") });
+      handleCloseFactoryDialog();
+    },
+    onError: () => {
+      toast({ title: t("admin.company.factories.createFailed"), variant: "destructive" });
+    },
+  });
+
+  const updateFactoryMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: { name?: string; address?: string; latitude?: number | null; longitude?: number | null } }) => {
+      const response = await apiRequest("PATCH", `/api/factories/${id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/factories"] });
+      toast({ title: t("admin.company.factories.updated") });
+      handleCloseFactoryDialog();
+    },
+    onError: () => {
+      toast({ title: t("admin.company.factories.updateFailed"), variant: "destructive" });
+    },
+  });
+
+  const deleteFactoryMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/factories/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/factories"] });
+      toast({ title: t("admin.company.factories.deleted") });
+    },
+    onError: () => {
+      toast({ title: t("admin.company.factories.deleteFailed"), variant: "destructive" });
+    },
+  });
+
+  const createProductTypeMutation = useMutation({
+    mutationFn: async (data: { name: string; nameRu?: string; nameZh?: string; description?: string }) => {
+      const response = await apiRequest("POST", "/api/product-types", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/product-types"] });
+      toast({ title: t("admin.company.productTypes.created") });
+      handleCloseProductTypeDialog();
+    },
+    onError: () => {
+      toast({ title: t("admin.company.productTypes.createFailed"), variant: "destructive" });
+    },
+  });
+
+  const updateProductTypeMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: { name?: string; nameRu?: string; nameZh?: string; description?: string } }) => {
+      const response = await apiRequest("PATCH", `/api/product-types/${id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/product-types"] });
+      toast({ title: t("admin.company.productTypes.updated") });
+      handleCloseProductTypeDialog();
+    },
+    onError: () => {
+      toast({ title: t("admin.company.productTypes.updateFailed"), variant: "destructive" });
+    },
+  });
+
+  const deleteProductTypeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/product-types/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/product-types"] });
+      toast({ title: t("admin.company.productTypes.deleted") });
+    },
+    onError: () => {
+      toast({ title: t("admin.company.productTypes.deleteFailed"), variant: "destructive" });
+    },
+  });
+
   const handleSave = () => {
     if (companyName.trim()) {
       updateCompanyMutation.mutate({ name: companyName.trim() });
@@ -162,6 +275,88 @@ export default function AdminCompany() {
     setInviteRole("user");
     setInviteMaxUses(1);
     setGeneratedInviteLink(null);
+  };
+
+  const handleOpenFactoryDialog = (factory?: Factory) => {
+    if (factory) {
+      setEditingFactory(factory);
+      setFactoryName(factory.name);
+      setFactoryAddress(factory.address || "");
+      setFactoryLatitude(factory.latitude?.toString() || "");
+      setFactoryLongitude(factory.longitude?.toString() || "");
+    } else {
+      setEditingFactory(null);
+      setFactoryName("");
+      setFactoryAddress("");
+      setFactoryLatitude("");
+      setFactoryLongitude("");
+    }
+    setIsFactoryDialogOpen(true);
+  };
+
+  const handleCloseFactoryDialog = () => {
+    setIsFactoryDialogOpen(false);
+    setEditingFactory(null);
+    setFactoryName("");
+    setFactoryAddress("");
+    setFactoryLatitude("");
+    setFactoryLongitude("");
+  };
+
+  const handleSaveFactory = () => {
+    const data = {
+      name: factoryName.trim(),
+      address: factoryAddress.trim() || undefined,
+      latitude: factoryLatitude ? parseFloat(factoryLatitude) : undefined,
+      longitude: factoryLongitude ? parseFloat(factoryLongitude) : undefined,
+    };
+    
+    if (editingFactory) {
+      updateFactoryMutation.mutate({ id: editingFactory.id, data });
+    } else {
+      createFactoryMutation.mutate(data);
+    }
+  };
+
+  const handleOpenProductTypeDialog = (productType?: ProductType) => {
+    if (productType) {
+      setEditingProductType(productType);
+      setProductTypeName(productType.name);
+      setProductTypeNameRu(productType.nameRu || "");
+      setProductTypeNameZh(productType.nameZh || "");
+      setProductTypeDescription(productType.description || "");
+    } else {
+      setEditingProductType(null);
+      setProductTypeName("");
+      setProductTypeNameRu("");
+      setProductTypeNameZh("");
+      setProductTypeDescription("");
+    }
+    setIsProductTypeDialogOpen(true);
+  };
+
+  const handleCloseProductTypeDialog = () => {
+    setIsProductTypeDialogOpen(false);
+    setEditingProductType(null);
+    setProductTypeName("");
+    setProductTypeNameRu("");
+    setProductTypeNameZh("");
+    setProductTypeDescription("");
+  };
+
+  const handleSaveProductType = () => {
+    const data = {
+      name: productTypeName.trim(),
+      nameRu: productTypeNameRu.trim() || undefined,
+      nameZh: productTypeNameZh.trim() || undefined,
+      description: productTypeDescription.trim() || undefined,
+    };
+    
+    if (editingProductType) {
+      updateProductTypeMutation.mutate({ id: editingProductType.id, data });
+    } else {
+      createProductTypeMutation.mutate(data);
+    }
   };
 
   const pendingInvites = invites?.filter(inv => {
@@ -525,6 +720,346 @@ export default function AdminCompany() {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground py-4">{t("common.noData")}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-row items-center justify-between gap-4 flex-wrap">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <FactoryIcon className="h-5 w-5" />
+                {t("admin.company.factories.title")}
+              </CardTitle>
+              <CardDescription>
+                {t("admin.company.factories.description")}
+              </CardDescription>
+            </div>
+            <Dialog open={isFactoryDialogOpen} onOpenChange={setIsFactoryDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => handleOpenFactoryDialog()} data-testid="button-add-factory">
+                  <Plus className="h-4 w-4 mr-2" />
+                  {t("admin.company.factories.add")}
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingFactory ? t("admin.company.factories.edit") : t("admin.company.factories.add")}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {t("admin.company.factories.dialogDescription")}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="factoryName">{t("admin.company.factories.name")}</Label>
+                    <Input
+                      id="factoryName"
+                      value={factoryName}
+                      onChange={(e) => setFactoryName(e.target.value)}
+                      placeholder={t("admin.company.factories.namePlaceholder")}
+                      data-testid="input-factory-name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="factoryAddress">{t("admin.company.factories.address")}</Label>
+                    <Input
+                      id="factoryAddress"
+                      value={factoryAddress}
+                      onChange={(e) => setFactoryAddress(e.target.value)}
+                      placeholder={t("admin.company.factories.addressPlaceholder")}
+                      data-testid="input-factory-address"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="factoryLatitude">{t("admin.company.factories.latitude")}</Label>
+                      <Input
+                        id="factoryLatitude"
+                        type="number"
+                        step="any"
+                        value={factoryLatitude}
+                        onChange={(e) => setFactoryLatitude(e.target.value)}
+                        placeholder="0.0"
+                        data-testid="input-factory-latitude"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="factoryLongitude">{t("admin.company.factories.longitude")}</Label>
+                      <Input
+                        id="factoryLongitude"
+                        type="number"
+                        step="any"
+                        value={factoryLongitude}
+                        onChange={(e) => setFactoryLongitude(e.target.value)}
+                        placeholder="0.0"
+                        data-testid="input-factory-longitude"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={handleCloseFactoryDialog}>
+                    {t("common.cancel")}
+                  </Button>
+                  <Button 
+                    onClick={handleSaveFactory} 
+                    disabled={!factoryName.trim() || createFactoryMutation.isPending || updateFactoryMutation.isPending}
+                    data-testid="button-save-factory"
+                  >
+                    {(createFactoryMutation.isPending || updateFactoryMutation.isPending) ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    {t("common.save")}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {factoriesLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : factories && factories.length > 0 ? (
+            <div className="space-y-2">
+              {factories.map((factory) => (
+                <div 
+                  key={factory.id} 
+                  className="flex items-center justify-between p-3 border rounded-md"
+                  data-testid={`factory-item-${factory.id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">{factory.name}</span>
+                      {factory.address && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <MapPin className="h-3 w-3" />
+                          <span>{factory.address}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleOpenFactoryDialog(factory)}
+                      data-testid={`button-edit-factory-${factory.id}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          data-testid={`button-delete-factory-${factory.id}`}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>{t("admin.company.factories.delete")}</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {t("admin.company.factories.deleteConfirm")}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteFactoryMutation.mutate(factory.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {deleteFactoryMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : null}
+                            {t("common.delete")}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground py-4">{t("admin.company.factories.noData")}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-row items-center justify-between gap-4 flex-wrap">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                {t("admin.company.productTypes.title")}
+              </CardTitle>
+              <CardDescription>
+                {t("admin.company.productTypes.description")}
+              </CardDescription>
+            </div>
+            <Dialog open={isProductTypeDialogOpen} onOpenChange={setIsProductTypeDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => handleOpenProductTypeDialog()} data-testid="button-add-product-type">
+                  <Plus className="h-4 w-4 mr-2" />
+                  {t("admin.company.productTypes.add")}
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingProductType ? t("admin.company.productTypes.edit") : t("admin.company.productTypes.add")}
+                  </DialogTitle>
+                  <DialogDescription>
+                    {t("admin.company.productTypes.dialogDescription")}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="productTypeName">{t("admin.company.productTypes.name")} (EN)</Label>
+                    <Input
+                      id="productTypeName"
+                      value={productTypeName}
+                      onChange={(e) => setProductTypeName(e.target.value)}
+                      placeholder={t("admin.company.productTypes.namePlaceholder")}
+                      data-testid="input-product-type-name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="productTypeNameRu">{t("admin.company.productTypes.name")} (RU)</Label>
+                    <Input
+                      id="productTypeNameRu"
+                      value={productTypeNameRu}
+                      onChange={(e) => setProductTypeNameRu(e.target.value)}
+                      placeholder={t("admin.company.productTypes.nameRuPlaceholder")}
+                      data-testid="input-product-type-name-ru"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="productTypeNameZh">{t("admin.company.productTypes.name")} (ZH)</Label>
+                    <Input
+                      id="productTypeNameZh"
+                      value={productTypeNameZh}
+                      onChange={(e) => setProductTypeNameZh(e.target.value)}
+                      placeholder={t("admin.company.productTypes.nameZhPlaceholder")}
+                      data-testid="input-product-type-name-zh"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="productTypeDescription">{t("admin.company.productTypes.descriptionLabel")}</Label>
+                    <Input
+                      id="productTypeDescription"
+                      value={productTypeDescription}
+                      onChange={(e) => setProductTypeDescription(e.target.value)}
+                      placeholder={t("admin.company.productTypes.descriptionPlaceholder")}
+                      data-testid="input-product-type-description"
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={handleCloseProductTypeDialog}>
+                    {t("common.cancel")}
+                  </Button>
+                  <Button 
+                    onClick={handleSaveProductType} 
+                    disabled={!productTypeName.trim() || createProductTypeMutation.isPending || updateProductTypeMutation.isPending}
+                    data-testid="button-save-product-type"
+                  >
+                    {(createProductTypeMutation.isPending || updateProductTypeMutation.isPending) ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4 mr-2" />
+                    )}
+                    {t("common.save")}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {productTypesLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : productTypes && productTypes.length > 0 ? (
+            <div className="space-y-2">
+              {productTypes.map((productType) => (
+                <div 
+                  key={productType.id} 
+                  className="flex items-center justify-between p-3 border rounded-md"
+                  data-testid={`product-type-item-${productType.id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">{productType.name}</span>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                        {productType.nameRu && (
+                          <Badge variant="outline" className="text-xs">RU: {productType.nameRu}</Badge>
+                        )}
+                        {productType.nameZh && (
+                          <Badge variant="outline" className="text-xs">ZH: {productType.nameZh}</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => handleOpenProductTypeDialog(productType)}
+                      data-testid={`button-edit-product-type-${productType.id}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          data-testid={`button-delete-product-type-${productType.id}`}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>{t("admin.company.productTypes.delete")}</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {t("admin.company.productTypes.deleteConfirm")}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteProductTypeMutation.mutate(productType.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {deleteProductTypeMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : null}
+                            {t("common.delete")}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground py-4">{t("admin.company.productTypes.noData")}</p>
           )}
         </CardContent>
       </Card>

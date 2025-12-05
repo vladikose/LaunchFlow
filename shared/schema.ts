@@ -86,6 +86,7 @@ export const productTypes = pgTable("product_types", {
   name: varchar("name", { length: 255 }).notNull(),
   nameRu: varchar("name_ru", { length: 255 }),
   nameZh: varchar("name_zh", { length: 255 }),
+  description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
