@@ -13,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,13 @@ export function AppSidebar() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [location] = useLocation();
+  const { setOpenMobile, isMobile } = useSidebar();
+
+  const handleNavClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   const mainNavItems = [
     {
@@ -94,7 +102,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <Link href="/" className="flex items-center gap-2" data-testid="link-logo">
+        <Link href="/" className="flex items-center gap-2" data-testid="link-logo" onClick={handleNavClick}>
           <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
             <Rocket className="h-4 w-4 text-primary-foreground" />
           </div>
@@ -113,7 +121,11 @@ export function AppSidebar() {
                     asChild
                     isActive={location === item.url || location.startsWith(item.url + "/")}
                   >
-                    <Link href={item.url} data-testid={`nav-${item.url.replace("/", "")}`}>
+                    <Link 
+                      href={item.url} 
+                      data-testid={`nav-${item.url.replace("/", "")}`}
+                      onClick={handleNavClick}
+                    >
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
                     </Link>
@@ -137,7 +149,11 @@ export function AppSidebar() {
                         asChild
                         isActive={location === item.url || location.startsWith(item.url + "/")}
                       >
-                        <Link href={item.url} data-testid={`nav-admin-${item.url.split("/").pop()}`}>
+                        <Link 
+                          href={item.url} 
+                          data-testid={`nav-admin-${item.url.split("/").pop()}`}
+                          onClick={handleNavClick}
+                        >
                           <item.icon className="h-4 w-4" />
                           <span>{item.title}</span>
                         </Link>
@@ -176,7 +192,7 @@ export function AppSidebar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
             <DropdownMenuItem asChild>
-              <Link href="/settings" data-testid="menu-item-settings">
+              <Link href="/settings" data-testid="menu-item-settings" onClick={handleNavClick}>
                 <Settings className="mr-2 h-4 w-4" />
                 {t("nav.settings")}
               </Link>
