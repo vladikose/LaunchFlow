@@ -137,6 +137,16 @@ export default function Login() {
                   )}
                 />
 
+                <div className="flex justify-end">
+                  <Link 
+                    href="/forgot-password" 
+                    className="text-sm text-primary hover:underline"
+                    data-testid="link-forgot-password"
+                  >
+                    {t("auth.forgotPassword")}
+                  </Link>
+                </div>
+
                 <Button
                   type="submit"
                   className="w-full"

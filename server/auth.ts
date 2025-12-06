@@ -206,6 +206,27 @@ export function setupAuth(app: Express) {
     res.json(userWithoutPassword);
   });
 
+  app.post("/api/auth/forgot-password", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (user) {
+        console.log(`Password reset requested for user: ${email}`);
+      }
+
+      res.json({ 
+        message: "If an account exists with this email, reset instructions have been sent." 
+      });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.post("/api/auth/set-password", async (req: Request, res: Response) => {
     try {
       if (!req.session.userId) {
