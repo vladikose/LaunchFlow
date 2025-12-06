@@ -58,7 +58,7 @@ export default function Landing() {
             <LanguageSwitcher />
             <ThemeToggle />
             <Button asChild data-testid="button-login">
-              <a href="/api/login">{t("auth.login")}</a>
+              <a href="/login">{t("auth.login")}</a>
             </Button>
           </div>
         </div>

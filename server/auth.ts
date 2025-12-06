@@ -137,6 +137,17 @@ export function setupAuth(app: Express) {
     });
   });
 
+  app.get("/api/logout", (req: Request, res: Response) => {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Logout error:", err);
+        return res.redirect("/");
+      }
+      res.clearCookie("connect.sid");
+      res.redirect("/");
+    });
+  });
+
   app.get("/api/auth/user", async (req: Request, res: Response) => {
     if (!req.session.userId) {
       return res.status(401).json({ message: "Unauthorized" });
