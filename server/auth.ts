@@ -29,9 +29,43 @@ export function getSession() {
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
       maxAge: sessionTtl,
     },
   });
+}
+
+const loginAttempts = new Map<string, { count: number; lastAttempt: number }>();
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION = 15 * 60 * 1000;
+
+function isRateLimited(email: string): boolean {
+  const now = Date.now();
+  const attempts = loginAttempts.get(email);
+  
+  if (!attempts) return false;
+  
+  if (now - attempts.lastAttempt > LOCKOUT_DURATION) {
+    loginAttempts.delete(email);
+    return false;
+  }
+  
+  return attempts.count >= MAX_LOGIN_ATTEMPTS;
+}
+
+function recordLoginAttempt(email: string): void {
+  const now = Date.now();
+  const attempts = loginAttempts.get(email);
+  
+  if (!attempts || now - attempts.lastAttempt > LOCKOUT_DURATION) {
+    loginAttempts.set(email, { count: 1, lastAttempt: now });
+  } else {
+    loginAttempts.set(email, { count: attempts.count + 1, lastAttempt: now });
+  }
+}
+
+function clearLoginAttempts(email: string): void {
+  loginAttempts.delete(email);
 }
 
 const registerSchema = z.object({
@@ -96,8 +130,15 @@ export function setupAuth(app: Express) {
     try {
       const validatedData = loginSchema.parse(req.body);
       
+      if (isRateLimited(validatedData.email)) {
+        return res.status(429).json({ 
+          message: "Too many login attempts. Please try again in 15 minutes." 
+        });
+      }
+
       const user = await storage.getUserByEmail(validatedData.email);
       if (!user) {
+        recordLoginAttempt(validatedData.email);
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
@@ -110,9 +151,11 @@ export function setupAuth(app: Express) {
 
       const isValidPassword = await verifyPassword(validatedData.password, user.passwordHash);
       if (!isValidPassword) {
+        recordLoginAttempt(validatedData.email);
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
+      clearLoginAttempts(validatedData.email);
       req.session.userId = user.id;
       
       const { passwordHash: _, ...userWithoutPassword } = user;
@@ -169,12 +212,29 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ message: "Unauthorized" });
       }
 
-      const { password } = req.body;
-      if (!password || password.length < 6) {
-        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ message: "New password must be at least 6 characters" });
       }
 
-      const passwordHash = await hashPassword(password);
+      const user = await storage.getUser(req.session.userId);
+      if (!user) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      if (user.passwordHash) {
+        if (!currentPassword) {
+          return res.status(400).json({ message: "Current password is required" });
+        }
+        
+        const isValidPassword = await verifyPassword(currentPassword, user.passwordHash);
+        if (!isValidPassword) {
+          return res.status(401).json({ message: "Current password is incorrect" });
+        }
+      }
+
+      const passwordHash = await hashPassword(newPassword);
       await storage.updateUser(req.session.userId, { passwordHash });
 
       res.json({ message: "Password set successfully" });

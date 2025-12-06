@@ -53,15 +53,23 @@ Preferred communication style: Simple, everyday language.
 - Request logging middleware for debugging and monitoring
 
 **Authentication & Authorization:**
-- Replit OIDC (OpenID Connect) for authentication
-- Passport.js with OpenID Client strategy
+- Custom username/password authentication system (replaced Replit OIDC)
+- bcryptjs for secure password hashing (cost factor 10)
 - Session storage in PostgreSQL for distributed deployment support
-- User claims stored in session for quick access
+- Rate limiting: 5 failed login attempts triggers 15-minute lockout
+- Secure cookies with httpOnly, sameSite: 'lax', and secure flag in production
+- API Routes:
+  - POST /api/auth/register - User registration
+  - POST /api/auth/login - User login
+  - POST /api/auth/logout - Logout (JSON response)
+  - GET /api/logout - Logout with redirect
+  - GET /api/auth/user - Get current user
+  - POST /api/auth/set-password - Change password (requires current password)
 - Hierarchical role-based access control:
   - **superadmin**: Global admin with access to all users across all companies, can permanently delete users
   - **admin**: Company-level admin, can manage users within their company (add/remove from company)
   - **user**: Standard user with project access
-  - **guest**: Users without company association
+  - **guest**: Users without company association (new registrations start as guest)
 
 **Build & Deployment:**
 - esbuild for fast server-side bundling
@@ -109,10 +117,11 @@ Preferred communication style: Simple, everyday language.
 - Replit infrastructure for deployment, authentication, and service mesh
 - Neon for managed PostgreSQL hosting
 
-**Authentication Provider:**
-- Replit OIDC for SSO and user identity
-- Token refresh and session management
-- Profile information (email, name, profile image) from identity provider
+**Authentication:**
+- Custom username/password authentication (server/auth.ts)
+- bcryptjs for password hashing
+- Session-based with PostgreSQL session storage
+- No external authentication provider dependencies
 
 **Development Tools:**
 - Replit-specific Vite plugins (runtime error overlay, cartographer, dev banner)
@@ -134,7 +143,18 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### File Access Control Security (Latest)
+### Custom Authentication System (Latest)
+- Complete migration from Replit OIDC to custom username/password authentication
+- New database fields: passwordHash, emailVerified, resetToken, resetTokenExpiry
+- bcryptjs for secure password hashing with cost factor 10
+- Rate limiting: 5 failed login attempts triggers 15-minute lockout per email
+- Secure session cookies with httpOnly, sameSite: 'lax', secure (production)
+- New frontend pages: /login, /register with form validation
+- Password change requires current password verification (CSRF protection)
+- Full multi-language support (EN/RU/ZH) for all auth UI
+- Existing Replit users can set password after logging in
+
+### File Access Control Security
 - Complete server-side enforcement of file access control for Factory Proposal stage
 - /objects/* endpoint now requires database record to exist (deny-by-default security)
 - allowedUserIds field on stageFiles table controls which users can access specific files
