@@ -49,6 +49,8 @@ import {
 export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: { email: string; passwordHash: string; firstName?: string | null; lastName?: string | null; role?: string; emailVerified?: boolean }): Promise<User>;
   getUsersByCompany(companyId: string): Promise<User[]>;
   getAllUsers(): Promise<User[]>;
   updateUser(id: string, data: Partial<User>): Promise<User | undefined>;
@@ -169,6 +171,33 @@ export class DatabaseStorage implements IStorage {
 
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(userData: { 
+    email: string; 
+    passwordHash: string; 
+    firstName?: string | null; 
+    lastName?: string | null; 
+    role?: string; 
+    emailVerified?: boolean 
+  }): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        email: userData.email,
+        passwordHash: userData.passwordHash,
+        firstName: userData.firstName ?? null,
+        lastName: userData.lastName ?? null,
+        role: (userData.role as any) ?? "guest",
+        emailVerified: userData.emailVerified ?? false,
+      })
+      .returning();
     return user;
   }
 

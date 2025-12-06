@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
-import { setupAuth } from "./replitAuth";
+import { setupAuth } from "./auth";
 import { createServer } from "http";
 
 const app = express();

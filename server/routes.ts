@@ -2,29 +2,12 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { randomBytes } from "crypto";
 import { storage } from "./storage";
-import { isAuthenticated } from "./replitAuth";
+import { isAuthenticated, getUser } from "./auth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { z } from "zod";
 import type { User } from "@shared/schema";
 
 const objectStorageService = new ObjectStorageService();
-
-function getUser(req: Request): User | null {
-  const user = req.user as any;
-  if (!user?.claims?.sub) return null;
-  return {
-    id: user.claims.sub,
-    email: user.claims.email || null,
-    firstName: user.claims.first_name || null,
-    lastName: user.claims.last_name || null,
-    jobTitle: null,
-    profileImageUrl: user.claims.profile_image_url || null,
-    companyId: null,
-    role: null,
-    createdAt: null,
-    updatedAt: null,
-  };
-}
 
 const DEFAULT_STAGE_TEMPLATES = [
   { 
