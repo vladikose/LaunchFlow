@@ -1056,6 +1056,93 @@ export async function registerRoutes(
     }
   });
 
+  const addStagesToProjectSchema = z.object({
+    templateIds: z.array(z.string()),
+  });
+
+  app.post("/api/projects/:id/add-stages", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const project = await storage.getProjectById(req.params.id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      const validatedData = addStagesToProjectSchema.parse(req.body);
+      const { templateIds } = validatedData;
+
+      if (templateIds.length === 0) {
+        return res.status(400).json({ message: "No templates specified" });
+      }
+
+      const existingStages = await storage.getStagesByProject(project.id);
+      const existingTemplateIds = new Set(existingStages.map(s => s.templateId).filter(Boolean));
+      
+      const templates = await storage.getStageTemplatesByCompany(project.companyId);
+      const templatesMap = new Map(templates.map(t => [t.id, t]));
+      
+      const newTemplateIds = templateIds.filter(id => !existingTemplateIds.has(id));
+      
+      if (newTemplateIds.length === 0) {
+        return res.status(400).json({ message: "All specified stages already exist in the project" });
+      }
+
+      const maxPosition = Math.max(...existingStages.map(s => s.position || 0), 0);
+      let position = maxPosition + 1;
+
+      const createdStages = [];
+      for (const templateId of newTemplateIds) {
+        const template = templatesMap.get(templateId);
+        if (!template) continue;
+
+        let checklistData: Record<string, boolean> | null = null;
+        if (template.hasChecklist && template.checklistItems) {
+          checklistData = {};
+          for (const item of template.checklistItems) {
+            checklistData[item] = false;
+          }
+        }
+        
+        let conditionalSubstagesData: Record<string, boolean> | null = null;
+        if (template.hasConditionalSubstages && template.conditionalSubstages) {
+          conditionalSubstagesData = {};
+          for (const substage of template.conditionalSubstages) {
+            conditionalSubstagesData[substage] = false;
+          }
+        }
+        
+        const stage = await storage.createStage({
+          projectId: project.id,
+          templateId: template.id,
+          name: template.name,
+          position: position++,
+          status: "waiting",
+          startDate: null,
+          deadline: null,
+          checklistData,
+          conditionalEnabled: false,
+          conditionalSubstagesData,
+        });
+        createdStages.push(stage);
+      }
+
+      res.status(201).json({ 
+        message: `Added ${createdStages.length} new stage(s)`,
+        stages: createdStages 
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error("Error adding stages to project:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   const distributionDataSchema = z.object({
     productPrices: z.record(z.number()).optional(),
     websiteDescription: z.string().optional(),

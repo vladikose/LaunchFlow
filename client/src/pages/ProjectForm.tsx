@@ -29,7 +29,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ArrowLeft, Plus, Trash2, Save, Layers } from "lucide-react";
-import type { User, Project, Product, Factory, ProductType, StageTemplate } from "@shared/schema";
+import type { User, Project, Product, Factory, ProductType, StageTemplate, Stage } from "@shared/schema";
 
 const productSchema = z.object({
   article: z.string().optional(),
@@ -72,15 +72,15 @@ export default function ProjectForm() {
 
   const { data: stageTemplates, isLoading: templatesLoading } = useQuery<StageTemplate[]>({
     queryKey: ["/api/stage-templates"],
-    enabled: !isEdit,
   });
 
-  const { data: existingProject, isLoading: projectLoading } = useQuery<Project & { products?: Product[] }>({
+  const { data: existingProject, isLoading: projectLoading } = useQuery<Project & { products?: Product[], stages?: Stage[] }>({
     queryKey: ["/api/projects", projectId],
     enabled: isEdit,
   });
 
   const [excludedTemplateIds, setExcludedTemplateIds] = useState<string[]>([]);
+  const [stagesToAdd, setStagesToAdd] = useState<string[]>([]);
 
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectFormSchema),
@@ -123,8 +123,21 @@ export default function ProjectForm() {
       .sort((a, b) => (a.position || 0) - (b.position || 0));
   }, [stageTemplates]);
 
+  const existingTemplateIds = useMemo(() => {
+    if (!existingProject?.stages) return new Set<string>();
+    return new Set(existingProject.stages.map(s => s.templateId).filter(Boolean) as string[]);
+  }, [existingProject?.stages]);
+
   const toggleTemplateExclusion = (templateId: string) => {
     setExcludedTemplateIds(prev => 
+      prev.includes(templateId)
+        ? prev.filter(id => id !== templateId)
+        : [...prev, templateId]
+    );
+  };
+
+  const toggleStageToAdd = (templateId: string) => {
+    setStagesToAdd(prev => 
       prev.includes(templateId)
         ? prev.filter(id => id !== templateId)
         : [...prev, templateId]
@@ -162,18 +175,27 @@ export default function ProjectForm() {
     },
   });
 
+  const addStagesMutation = useMutation({
+    mutationFn: async (templateIds: string[]) => {
+      return apiRequest("POST", `/api/projects/${projectId}/add-stages`, { templateIds });
+    },
+  });
+
   const updateMutation = useMutation({
     mutationFn: async (data: ProjectFormValues) => {
-      return apiRequest("PUT", `/api/projects/${projectId}`, data);
+      await apiRequest("PUT", `/api/projects/${projectId}`, data);
+      if (stagesToAdd.length > 0) {
+        await addStagesMutation.mutateAsync(stagesToAdd);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
-      toast({ title: "Project updated successfully" });
+      toast({ title: t("projects.updateSuccess") });
       navigate(`/projects/${projectId}`);
     },
     onError: (error: Error) => {
-      toast({ title: "Error updating project", description: error.message, variant: "destructive" });
+      toast({ title: t("projects.updateError"), description: error.message, variant: "destructive" });
     },
   });
 
@@ -477,56 +499,72 @@ export default function ProjectForm() {
             </CardContent>
           </Card>
 
-          {!isEdit && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Layers className="h-5 w-5" />
-                  <CardTitle>{t("projects.stageSelection")}</CardTitle>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Layers className="h-5 w-5" />
+                <CardTitle>{t("projects.stageSelection")}</CardTitle>
+              </div>
+              <CardDescription>
+                {isEdit 
+                  ? t("projects.stageSelectionDescriptionEdit") 
+                  : t("projects.stageSelectionDescription")}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {templatesLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
+                  <Skeleton className="h-8 w-full" />
                 </div>
-                <CardDescription>
-                  {t("projects.stageSelectionDescription")}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {templatesLoading ? (
-                  <div className="space-y-3">
-                    <Skeleton className="h-8 w-full" />
-                    <Skeleton className="h-8 w-full" />
-                    <Skeleton className="h-8 w-full" />
-                  </div>
-                ) : sortedTemplates.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4">
-                    {t("projects.noStageTemplates")}
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {sortedTemplates.map((template, index) => {
-                      const isExcluded = excludedTemplateIds.includes(template.id);
+              ) : sortedTemplates.length === 0 ? (
+                <p className="text-muted-foreground text-center py-4">
+                  {t("projects.noStageTemplates")}
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {sortedTemplates.map((template, index) => {
+                    const isExisting = existingTemplateIds.has(template.id);
+                    const isExcluded = excludedTemplateIds.includes(template.id);
+                    const isSelectedToAdd = stagesToAdd.includes(template.id);
+                    
+                    if (isEdit) {
                       return (
                         <div
                           key={template.id}
                           className={`flex items-center gap-3 p-3 rounded-md border transition-colors ${
-                            isExcluded 
-                              ? "bg-muted/30 border-dashed opacity-60" 
-                              : "bg-background"
+                            isExisting 
+                              ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900" 
+                              : isSelectedToAdd
+                                ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900"
+                                : "bg-muted/30 border-dashed opacity-60"
                           }`}
                           data-testid={`stage-template-${template.id}`}
                         >
                           <Checkbox
                             id={`template-${template.id}`}
-                            checked={!isExcluded}
-                            onCheckedChange={() => toggleTemplateExclusion(template.id)}
+                            checked={isExisting || isSelectedToAdd}
+                            disabled={isExisting}
+                            onCheckedChange={() => !isExisting && toggleStageToAdd(template.id)}
                             data-testid={`checkbox-template-${template.id}`}
                           />
                           <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center">
+                            <span className={`flex-shrink-0 w-6 h-6 rounded-full text-xs font-medium flex items-center justify-center ${
+                              isExisting 
+                                ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300" 
+                                : "bg-primary/10 text-primary"
+                            }`}>
                               {index + 1}
                             </span>
                             <label
                               htmlFor={`template-${template.id}`}
-                              className={`font-medium cursor-pointer truncate ${
-                                isExcluded ? "line-through text-muted-foreground" : ""
+                              className={`font-medium truncate ${
+                                isExisting 
+                                  ? "text-green-700 dark:text-green-300" 
+                                  : !isSelectedToAdd 
+                                    ? "text-muted-foreground cursor-pointer" 
+                                    : "cursor-pointer"
                               }`}
                             >
                               {getTemplateName(template, currentLang)}
@@ -536,21 +574,74 @@ export default function ProjectForm() {
                                 ({template.name})
                               </span>
                             )}
+                            {isExisting && (
+                              <span className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">
+                                {t("projects.stageExists")}
+                              </span>
+                            )}
+                            {isSelectedToAdd && !isExisting && (
+                              <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                                {t("projects.stageToAdd")}
+                              </span>
+                            )}
                           </div>
                         </div>
                       );
-                    })}
-                    <p className="text-sm text-muted-foreground mt-4">
-                      {t("projects.selectedStagesCount", { 
+                    }
+                    
+                    return (
+                      <div
+                        key={template.id}
+                        className={`flex items-center gap-3 p-3 rounded-md border transition-colors ${
+                          isExcluded 
+                            ? "bg-muted/30 border-dashed opacity-60" 
+                            : "bg-background"
+                        }`}
+                        data-testid={`stage-template-${template.id}`}
+                      >
+                        <Checkbox
+                          id={`template-${template.id}`}
+                          checked={!isExcluded}
+                          onCheckedChange={() => toggleTemplateExclusion(template.id)}
+                          data-testid={`checkbox-template-${template.id}`}
+                        />
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center">
+                            {index + 1}
+                          </span>
+                          <label
+                            htmlFor={`template-${template.id}`}
+                            className={`font-medium cursor-pointer truncate ${
+                              isExcluded ? "line-through text-muted-foreground" : ""
+                            }`}
+                          >
+                            {getTemplateName(template, currentLang)}
+                          </label>
+                          {currentLang !== "en" && template.name && (
+                            <span className="text-sm text-muted-foreground truncate hidden sm:inline">
+                              ({template.name})
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <p className="text-sm text-muted-foreground mt-4">
+                    {isEdit ? (
+                      stagesToAdd.length > 0 
+                        ? t("projects.stagesToAddCount", { count: stagesToAdd.length })
+                        : t("projects.existingStagesCount", { count: existingTemplateIds.size })
+                    ) : (
+                      t("projects.selectedStagesCount", { 
                         count: sortedTemplates.length - excludedTemplateIds.length,
                         total: sortedTemplates.length
-                      })}
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+                      })
+                    )}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <div className="flex justify-end gap-4">
             <Button
