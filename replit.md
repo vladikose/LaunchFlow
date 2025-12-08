@@ -52,3 +52,11 @@ Preferred communication style: Simple, everyday language.
     - **Database ORM**: Drizzle ORM.
 - **Fonts**: Inter font family (Google Fonts).
 - **APIs**: DeepL API for translation.
+
+## Pending Configuration
+
+### Email Service for Password Reset (NOT CONFIGURED)
+- Password reset emails require an email service provider (Resend recommended)
+- Need to add RESEND_API_KEY secret
+- Update forgot-password endpoint in server/auth.ts to send actual emails
+- Current state: Forgot password endpoint only logs the request, does not send emails
