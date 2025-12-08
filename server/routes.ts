@@ -6,6 +6,7 @@ import { isAuthenticated, getUser } from "./auth";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { z } from "zod";
 import type { User } from "@shared/schema";
+import * as deepl from "deepl-node";
 
 const objectStorageService = new ObjectStorageService();
 
@@ -2059,6 +2060,63 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error exporting data:", error);
       res.status(500).json({ message: "Failed to export data" });
+    }
+  });
+
+  // Translation endpoint using DeepL
+  const translateSchema = z.object({
+    text: z.string().min(1).max(10000),
+    targetLang: z.enum(["EN", "RU", "ZH", "DE", "FR", "ES", "IT", "JA", "KO", "PT"]),
+  });
+
+  app.post("/api/translate", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const apiKey = process.env.DEEPL_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ message: "Translation service not configured" });
+      }
+
+      const validatedData = translateSchema.parse(req.body);
+      
+      const translator = new deepl.Translator(apiKey);
+      
+      // Map language codes to DeepL format
+      const langMap: Record<string, deepl.TargetLanguageCode> = {
+        "EN": "en-US",
+        "RU": "ru",
+        "ZH": "zh-Hans",
+        "DE": "de",
+        "FR": "fr",
+        "ES": "es",
+        "IT": "it",
+        "JA": "ja",
+        "KO": "ko",
+        "PT": "pt-PT",
+      };
+
+      const targetLang = langMap[validatedData.targetLang] || "en-US";
+      
+      const result = await translator.translateText(
+        validatedData.text,
+        null, // auto-detect source language
+        targetLang
+      );
+
+      res.json({
+        translatedText: result.text,
+        detectedSourceLang: result.detectedSourceLang,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error("Translation error:", error);
+      res.status(500).json({ message: "Translation failed" });
     }
   });
 

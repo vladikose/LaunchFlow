@@ -55,6 +55,7 @@ import {
 } from "lucide-react";
 import type { StageWithRelations, User, StageFile, CustomField, DistributionData, TemplateBlock, ChecklistBlockConfig, ChecklistItemConfig, Product, ProductsBlockConfig } from "@shared/schema";
 import { DistributionPrepBlock } from "./DistributionPrepBlock";
+import { TranslateButton } from "./TranslateButton";
 
 interface StageCardProps {
   stage: StageWithRelations;
@@ -1212,6 +1213,8 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
                               <span>{getUserName(comment.userId) || "Unknown"}</span>
                               <span>·</span>
                               <span>{comment.createdAt ? formatFullDate(comment.createdAt) : ""}</span>
+                              <span>·</span>
+                              <TranslateButton text={comment.content} />
                             </div>
                           </div>
                         </div>

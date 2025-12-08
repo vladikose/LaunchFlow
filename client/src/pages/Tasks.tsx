@@ -34,6 +34,7 @@ import {
   Clock,
 } from "lucide-react";
 import type { TaskWithUsers } from "@shared/schema";
+import { TranslateButton } from "@/components/TranslateButton";
 
 export default function Tasks() {
   const { t } = useTranslation();
@@ -231,9 +232,12 @@ export default function Tasks() {
             )}
             <div className="flex-1 min-w-0 space-y-2">
               <div className="flex items-start justify-between gap-2">
-                <p className={`font-medium ${isCompleted ? "line-through" : ""}`}>
-                  {task.description}
-                </p>
+                <div className="flex-1">
+                  <p className={`font-medium ${isCompleted ? "line-through" : ""}`}>
+                    {task.description}
+                  </p>
+                  <TranslateButton text={task.description} className="mt-1" />
+                </div>
                 {getStatusBadge(task)}
               </div>
               
@@ -243,7 +247,8 @@ export default function Tasks() {
                     <MessageSquare className="h-4 w-4" />
                     {t("tasks.revisionNote")}:
                   </div>
-                  <p className="text-yellow-800 dark:text-yellow-300 mb-3">{task.revisionNote}</p>
+                  <p className="text-yellow-800 dark:text-yellow-300 mb-2">{task.revisionNote}</p>
+                  <TranslateButton text={task.revisionNote} className="mb-3" />
                   
                   {!isOutgoing && (
                     <div className="space-y-2">
@@ -280,6 +285,7 @@ export default function Tasks() {
                     {t("tasks.revisionResponse")}:
                   </div>
                   <p className="text-green-800 dark:text-green-300">{task.revisionResponse}</p>
+                  <TranslateButton text={task.revisionResponse} className="mt-1" />
                 </div>
               )}
 

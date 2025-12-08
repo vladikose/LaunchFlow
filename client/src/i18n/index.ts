@@ -345,6 +345,12 @@ const resources = {
         placeholder: "Write a comment... Use @ to mention someone",
         noComments: "No comments yet",
       },
+      translate: {
+        translate: "Translate",
+        translating: "Translating...",
+        translationError: "Translation failed",
+        showOriginal: "Show original",
+      },
       admin: {
         title: "Admin Panel",
         users: {
@@ -1021,6 +1027,12 @@ const resources = {
         placeholder: "Напишите комментарий... Используйте @ для упоминания",
         noComments: "Нет комментариев",
       },
+      translate: {
+        translate: "Перевести",
+        translating: "Перевод...",
+        translationError: "Ошибка перевода",
+        showOriginal: "Показать оригинал",
+      },
       admin: {
         title: "Администрирование",
         users: {
@@ -1696,6 +1708,12 @@ const resources = {
       comments: {
         placeholder: "写评论... 使用 @ 提及他人",
         noComments: "暂无评论",
+      },
+      translate: {
+        translate: "翻译",
+        translating: "翻译中...",
+        translationError: "翻译失败",
+        showOriginal: "显示原文",
       },
       admin: {
         title: "管理面板",
