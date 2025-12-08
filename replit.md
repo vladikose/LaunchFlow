@@ -143,7 +143,16 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### Custom Authentication System (Latest)
+### Project Edit Stage Selection (Latest)
+- Project edit form now includes stage template selection similar to create form
+- Existing stages display with green styling, checkmark, and "Exists" badge - checkboxes disabled
+- Available templates not yet added show with blue styling and "To add" badge when selected
+- New API endpoint POST /api/projects/:id/add-stages to add stages to existing projects
+- Server-side duplicate prevention using Set-based filtering
+- Full multi-language support (EN/RU/ZH) for all new UI elements
+- Count displays show existing stages and stages to be added
+
+### Custom Authentication System
 - Complete migration from Replit OIDC to custom username/password authentication
 - New database fields: passwordHash, emailVerified, resetToken, resetTokenExpiry
 - bcryptjs for secure password hashing with cost factor 10
