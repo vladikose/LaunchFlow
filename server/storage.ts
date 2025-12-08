@@ -95,6 +95,7 @@ export interface IStorage {
   getStagesByProject(projectId: string): Promise<StageWithRelations[]>;
   getStageById(id: string): Promise<StageWithRelations | undefined>;
   updateStage(id: string, data: Partial<Stage>): Promise<Stage | undefined>;
+  deleteStage(id: string): Promise<void>;
 
   createStageFile(file: InsertStageFile): Promise<StageFile>;
   getFilesByStage(stageId: string): Promise<StageFile[]>;
@@ -576,6 +577,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(stages.id, id))
       .returning();
     return stage;
+  }
+
+  async deleteStage(id: string): Promise<void> {
+    await db.delete(stages).where(eq(stages.id, id));
   }
 
   async createStageFile(file: InsertStageFile): Promise<StageFile> {

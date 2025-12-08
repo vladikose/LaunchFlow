@@ -1203,6 +1203,44 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/stages/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const existingStage = await storage.getStageById(req.params.id);
+      if (!existingStage) {
+        return res.status(404).json({ message: "Stage not found" });
+      }
+
+      const user = await storage.getUser(authUser.id);
+      if (!user || !user.companyId) {
+        return res.status(403).json({ message: "User must belong to a company" });
+      }
+
+      const project = await storage.getProjectById(existingStage.projectId);
+      if (!project || project.companyId !== user.companyId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const isAdmin = user.role === 'admin' || user.role === 'superadmin';
+      const isCreator = project.createdById === authUser.id;
+      const isResponsible = project.responsibleUserId === authUser.id;
+
+      if (!isAdmin && !isCreator && !isResponsible) {
+        return res.status(403).json({ message: "Only project creator, responsible user, or admin can delete stages" });
+      }
+
+      await storage.deleteStage(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting stage:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   const updateDeadlineSchema = z.object({
     deadline: z.string().optional().nullable(),
     reason: z.string().optional(),

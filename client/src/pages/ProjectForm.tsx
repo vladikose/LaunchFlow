@@ -28,7 +28,17 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { ArrowLeft, Plus, Trash2, Save, Layers } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Save, Layers, AlertTriangle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { User, Project, Product, Factory, ProductType, StageTemplate, Stage } from "@shared/schema";
 
 const productSchema = z.object({
@@ -81,6 +91,9 @@ export default function ProjectForm() {
 
   const [excludedTemplateIds, setExcludedTemplateIds] = useState<string[]>([]);
   const [stagesToAdd, setStagesToAdd] = useState<string[]>([]);
+  const [stagesToRemove, setStagesToRemove] = useState<string[]>([]);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [pendingRemoveTemplateId, setPendingRemoveTemplateId] = useState<string | null>(null);
 
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectFormSchema),
@@ -128,6 +141,17 @@ export default function ProjectForm() {
     return new Set(existingProject.stages.map(s => s.templateId).filter(Boolean) as string[]);
   }, [existingProject?.stages]);
 
+  const templateToStageId = useMemo(() => {
+    if (!existingProject?.stages) return new Map<string, string>();
+    const map = new Map<string, string>();
+    existingProject.stages.forEach(s => {
+      if (s.templateId) {
+        map.set(s.templateId, s.id);
+      }
+    });
+    return map;
+  }, [existingProject?.stages]);
+
   const toggleTemplateExclusion = (templateId: string) => {
     setExcludedTemplateIds(prev => 
       prev.includes(templateId)
@@ -142,6 +166,24 @@ export default function ProjectForm() {
         ? prev.filter(id => id !== templateId)
         : [...prev, templateId]
     );
+  };
+
+  const handleExistingStageToggle = (templateId: string) => {
+    const isMarkedForRemoval = stagesToRemove.includes(templateId);
+    if (isMarkedForRemoval) {
+      setStagesToRemove(prev => prev.filter(id => id !== templateId));
+    } else {
+      setPendingRemoveTemplateId(templateId);
+      setShowRemoveConfirm(true);
+    }
+  };
+
+  const confirmStageRemoval = () => {
+    if (pendingRemoveTemplateId) {
+      setStagesToRemove(prev => [...prev, pendingRemoveTemplateId]);
+    }
+    setShowRemoveConfirm(false);
+    setPendingRemoveTemplateId(null);
   };
 
   const getTemplateName = (template: StageTemplate, lang: string) => {
@@ -184,6 +226,14 @@ export default function ProjectForm() {
   const updateMutation = useMutation({
     mutationFn: async (data: ProjectFormValues) => {
       await apiRequest("PUT", `/api/projects/${projectId}`, data);
+      
+      for (const templateId of stagesToRemove) {
+        const stageId = templateToStageId.get(templateId);
+        if (stageId) {
+          await apiRequest("DELETE", `/api/stages/${stageId}`);
+        }
+      }
+      
       if (stagesToAdd.length > 0) {
         await addStagesMutation.mutateAsync(stagesToAdd);
       }
@@ -528,43 +578,60 @@ export default function ProjectForm() {
                     const isExisting = existingTemplateIds.has(template.id);
                     const isExcluded = excludedTemplateIds.includes(template.id);
                     const isSelectedToAdd = stagesToAdd.includes(template.id);
+                    const isMarkedForRemoval = stagesToRemove.includes(template.id);
                     
                     if (isEdit) {
+                      const getRowStyle = () => {
+                        if (isMarkedForRemoval) {
+                          return "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-900";
+                        }
+                        if (isExisting) {
+                          return "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900";
+                        }
+                        if (isSelectedToAdd) {
+                          return "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900";
+                        }
+                        return "bg-muted/30 border-dashed opacity-60";
+                      };
+
                       return (
                         <div
                           key={template.id}
-                          className={`flex items-center gap-3 p-3 rounded-md border transition-colors ${
-                            isExisting 
-                              ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-900" 
-                              : isSelectedToAdd
-                                ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-900"
-                                : "bg-muted/30 border-dashed opacity-60"
-                          }`}
+                          className={`flex items-center gap-3 p-3 rounded-md border transition-colors ${getRowStyle()}`}
                           data-testid={`stage-template-${template.id}`}
                         >
                           <Checkbox
                             id={`template-${template.id}`}
-                            checked={isExisting || isSelectedToAdd}
-                            disabled={isExisting}
-                            onCheckedChange={() => !isExisting && toggleStageToAdd(template.id)}
+                            checked={(isExisting && !isMarkedForRemoval) || isSelectedToAdd}
+                            onCheckedChange={() => {
+                              if (isExisting) {
+                                handleExistingStageToggle(template.id);
+                              } else {
+                                toggleStageToAdd(template.id);
+                              }
+                            }}
                             data-testid={`checkbox-template-${template.id}`}
                           />
                           <div className="flex items-center gap-2 flex-1 min-w-0">
                             <span className={`flex-shrink-0 w-6 h-6 rounded-full text-xs font-medium flex items-center justify-center ${
-                              isExisting 
-                                ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300" 
-                                : "bg-primary/10 text-primary"
+                              isMarkedForRemoval
+                                ? "bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300"
+                                : isExisting 
+                                  ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300" 
+                                  : "bg-primary/10 text-primary"
                             }`}>
                               {index + 1}
                             </span>
                             <label
                               htmlFor={`template-${template.id}`}
-                              className={`font-medium truncate ${
-                                isExisting 
-                                  ? "text-green-700 dark:text-green-300" 
-                                  : !isSelectedToAdd 
-                                    ? "text-muted-foreground cursor-pointer" 
-                                    : "cursor-pointer"
+                              className={`font-medium truncate cursor-pointer ${
+                                isMarkedForRemoval
+                                  ? "text-red-700 dark:text-red-300 line-through"
+                                  : isExisting 
+                                    ? "text-green-700 dark:text-green-300" 
+                                    : !isSelectedToAdd 
+                                      ? "text-muted-foreground" 
+                                      : ""
                               }`}
                             >
                               {getTemplateName(template, currentLang)}
@@ -574,7 +641,12 @@ export default function ProjectForm() {
                                 ({template.name})
                               </span>
                             )}
-                            {isExisting && (
+                            {isMarkedForRemoval && (
+                              <span className="text-xs bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 px-2 py-0.5 rounded-full">
+                                {t("projects.stageToRemove")}
+                              </span>
+                            )}
+                            {isExisting && !isMarkedForRemoval && (
                               <span className="text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-0.5 rounded-full">
                                 {t("projects.stageExists")}
                               </span>
@@ -628,9 +700,19 @@ export default function ProjectForm() {
                   })}
                   <p className="text-sm text-muted-foreground mt-4">
                     {isEdit ? (
-                      stagesToAdd.length > 0 
-                        ? t("projects.stagesToAddCount", { count: stagesToAdd.length })
-                        : t("projects.existingStagesCount", { count: existingTemplateIds.size })
+                      <>
+                        {t("projects.existingStagesCount", { count: existingTemplateIds.size - stagesToRemove.length })}
+                        {stagesToAdd.length > 0 && (
+                          <span className="text-blue-600 dark:text-blue-400 ml-2">
+                            (+{stagesToAdd.length} {t("projects.toAdd")})
+                          </span>
+                        )}
+                        {stagesToRemove.length > 0 && (
+                          <span className="text-red-600 dark:text-red-400 ml-2">
+                            (-{stagesToRemove.length} {t("projects.toRemove")})
+                          </span>
+                        )}
+                      </>
                     ) : (
                       t("projects.selectedStagesCount", { 
                         count: sortedTemplates.length - excludedTemplateIds.length,
@@ -659,6 +741,31 @@ export default function ProjectForm() {
           </div>
         </form>
       </Form>
+
+      <AlertDialog open={showRemoveConfirm} onOpenChange={setShowRemoveConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              {t("projects.confirmStageRemoval")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("projects.confirmStageRemovalDescription")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingRemoveTemplateId(null)}>
+              {t("common.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmStageRemoval}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t("projects.removeStage")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

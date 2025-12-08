@@ -143,7 +143,16 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### Editable File Access Control (Latest)
+### Stage Removal from Existing Projects (Latest)
+- Users can now remove stages from existing projects by unchecking them in the edit form
+- New DELETE /api/stages/:id endpoint with authorization (admin, project creator, or responsible user)
+- Confirmation dialog warns about permanent deletion of stage data (files, comments, tasks)
+- Visual feedback: Red styling and "To remove" badge for stages marked for removal
+- Summary shows count of stages to add/remove with color-coded indicators
+- Database cascade deletes automatically clean up related records
+- Full multi-language support (EN/RU/ZH) for all new UI elements
+
+### Editable File Access Control
 - Users can now edit file access permissions after upload for Factory Proposal stage files
 - New PATCH /api/stage-files/:id endpoint to update allowedUserIds
 - Authorization: Only file uploader or admin/superadmin can edit/delete files
@@ -155,12 +164,12 @@ Preferred communication style: Simple, everyday language.
 
 ### Project Edit Stage Selection
 - Project edit form now includes stage template selection similar to create form
-- Existing stages display with green styling, checkmark, and "Exists" badge - checkboxes disabled
+- Existing stages can be unchecked to mark for removal (with confirmation dialog)
 - Available templates not yet added show with blue styling and "To add" badge when selected
 - New API endpoint POST /api/projects/:id/add-stages to add stages to existing projects
 - Server-side duplicate prevention using Set-based filtering
 - Full multi-language support (EN/RU/ZH) for all new UI elements
-- Count displays show existing stages and stages to be added
+- Count displays show existing stages, stages to add, and stages to remove
 
 ### Custom Authentication System
 - Complete migration from Replit OIDC to custom username/password authentication
