@@ -1766,6 +1766,11 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Unauthorized" });
       }
       
+      const stageFile = await storage.getStageFileById(req.params.fileId);
+      if (!stageFile) {
+        return res.status(404).json({ message: "File not found" });
+      }
+      
       const stage = await storage.getStageById(req.params.stageId);
       if (!stage) {
         return res.status(404).json({ message: "Stage not found" });
@@ -1781,10 +1786,71 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Access denied to this stage" });
       }
       
+      const isUploader = stageFile.uploadedById === authUser.id;
+      const isAdmin = user.role === "admin" || user.role === "superadmin";
+      
+      if (!isUploader && !isAdmin) {
+        return res.status(403).json({ message: "Only file uploader or administrators can delete files" });
+      }
+      
       await storage.deleteStageFile(req.params.fileId);
       res.status(200).json({ message: "File deleted successfully" });
     } catch (error) {
       console.error("Error deleting stage file:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  const updateFileAccessSchema = z.object({
+    allowedUserIds: z.array(z.string()).nullable(),
+  });
+
+  app.patch("/api/stage-files/:fileId", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const stageFile = await storage.getStageFileById(req.params.fileId);
+      if (!stageFile) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      const stage = await storage.getStageById(stageFile.stageId);
+      if (!stage) {
+        return res.status(404).json({ message: "Stage not found" });
+      }
+
+      const project = await storage.getProjectById(stage.projectId);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      const user = await storage.getUser(authUser.id);
+      if (!user || user.companyId !== project.companyId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const isUploader = stageFile.uploadedById === authUser.id;
+      const isAdmin = user.role === "admin" || user.role === "superadmin";
+      
+      if (!isUploader && !isAdmin) {
+        return res.status(403).json({ message: "Only file uploader or administrators can edit access control" });
+      }
+
+      const validatedData = updateFileAccessSchema.parse(req.body);
+
+      const updatedFile = await storage.updateStageFile(req.params.fileId, {
+        allowedUserIds: validatedData.allowedUserIds,
+      });
+
+      res.json(updatedFile);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid data", errors: error.errors });
+      }
+      console.error("Error updating file access:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });

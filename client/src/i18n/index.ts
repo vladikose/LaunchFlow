@@ -274,8 +274,14 @@ const resources = {
         accessControl: {
           title: "Select Users with Access",
           description: "Select which users can view this file. Only selected users will have access to the Factory Proposal document.",
+          editTitle: "Edit File Access",
+          editDescription: "Update which users can view this file.",
           selectUsersRequired: "Please select at least one user with access",
           confirm: "Confirm",
+          saveChanges: "Save Changes",
+          editAccess: "Edit access",
+          updated: "File access updated",
+          updateFailed: "Failed to update file access",
         },
       },
       tasks: {
@@ -938,8 +944,14 @@ const resources = {
         accessControl: {
           title: "Выберите пользователей с доступом",
           description: "Выберите, какие пользователи смогут видеть этот файл. Только выбранные пользователи получат доступ к документу «Предложение от завода».",
+          editTitle: "Редактировать доступ к файлу",
+          editDescription: "Обновите список пользователей, которые могут просматривать этот файл.",
           selectUsersRequired: "Пожалуйста, выберите хотя бы одного пользователя",
           confirm: "Подтвердить",
+          saveChanges: "Сохранить изменения",
+          editAccess: "Редактировать доступ",
+          updated: "Доступ к файлу обновлен",
+          updateFailed: "Не удалось обновить доступ к файлу",
         },
       },
       tasks: {
@@ -1602,8 +1614,14 @@ const resources = {
         accessControl: {
           title: "选择有权限的用户",
           description: "选择哪些用户可以查看此文件。只有被选中的用户才能访问工厂报价文档。",
+          editTitle: "编辑文件访问权限",
+          editDescription: "更新可以查看此文件的用户。",
           selectUsersRequired: "请至少选择一个用户",
           confirm: "确认",
+          saveChanges: "保存更改",
+          editAccess: "编辑权限",
+          updated: "文件访问权限已更新",
+          updateFailed: "文件访问权限更新失败",
         },
       },
       tasks: {

@@ -99,6 +99,8 @@ export interface IStorage {
   createStageFile(file: InsertStageFile): Promise<StageFile>;
   getFilesByStage(stageId: string): Promise<StageFile[]>;
   getStageFileByUrl(fileUrl: string): Promise<StageFile | undefined>;
+  getStageFileById(fileId: string): Promise<StageFile | undefined>;
+  updateStageFile(fileId: string, data: Partial<StageFile>): Promise<StageFile | undefined>;
   deleteStageFile(fileId: string): Promise<void>;
 
   createComment(comment: InsertComment): Promise<Comment>;
@@ -594,6 +596,23 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(stageFiles)
       .where(eq(stageFiles.fileUrl, fileUrl));
+    return file;
+  }
+
+  async getStageFileById(fileId: string): Promise<StageFile | undefined> {
+    const [file] = await db
+      .select()
+      .from(stageFiles)
+      .where(eq(stageFiles.id, fileId));
+    return file;
+  }
+
+  async updateStageFile(fileId: string, data: Partial<StageFile>): Promise<StageFile | undefined> {
+    const [file] = await db
+      .update(stageFiles)
+      .set(data)
+      .where(eq(stageFiles.id, fileId))
+      .returning();
     return file;
   }
 

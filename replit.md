@@ -143,7 +143,17 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### Project Edit Stage Selection (Latest)
+### Editable File Access Control (Latest)
+- Users can now edit file access permissions after upload for Factory Proposal stage files
+- New PATCH /api/stage-files/:id endpoint to update allowedUserIds
+- Authorization: Only file uploader or admin/superadmin can edit/delete files
+- Edit Access button (Users icon) appears on hover for authorized users
+- Delete button also now restricted to file uploader or admin/superadmin
+- Access dialog shows different title/description when editing vs creating
+- uploadedById always set from authenticated user, preventing forgery
+- Full multi-language support (EN/RU/ZH) for all new UI elements
+
+### Project Edit Stage Selection
 - Project edit form now includes stage template selection similar to create form
 - Existing stages display with green styling, checkmark, and "Exists" badge - checkboxes disabled
 - Available templates not yet added show with blue styling and "To add" badge when selected

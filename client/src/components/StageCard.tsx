@@ -51,6 +51,7 @@ import {
   Clock,
   Trash2,
   Package,
+  Users,
 } from "lucide-react";
 import type { StageWithRelations, User, StageFile, CustomField, DistributionData, TemplateBlock, ChecklistBlockConfig, ChecklistItemConfig, Product, ProductsBlockConfig } from "@shared/schema";
 import { DistributionPrepBlock } from "./DistributionPrepBlock";
@@ -100,6 +101,7 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
     fileUrl: string;
     checklistItemKey?: string;
   } | null>(null);
+  const [editingFileAccess, setEditingFileAccess] = useState<StageFile | null>(null);
 
   const getChecklistItemConfigs = (): Map<string, ChecklistItemConfig> => {
     const configMap = new Map<string, ChecklistItemConfig>();
@@ -306,6 +308,22 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
     },
     onError: () => {
       toast({ title: t("stages.fileDeleteFailed") || "Failed to delete file", variant: "destructive" });
+    },
+  });
+
+  const updateFileAccessMutation = useMutation({
+    mutationFn: async ({ fileId, allowedUserIds }: { fileId: string; allowedUserIds: string[] | null }) => {
+      return apiRequest("PATCH", `/api/stage-files/${fileId}`, { allowedUserIds });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      toast({ title: t("stages.accessControl.updated") || "Access updated" });
+      setEditingFileAccess(null);
+      setShowAccessDialog(false);
+      setSelectedAccessUsers([]);
+    },
+    onError: () => {
+      toast({ title: t("stages.accessControl.updateFailed") || "Failed to update access", variant: "destructive" });
     },
   });
 
@@ -604,8 +622,6 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
   };
 
   const handleAccessDialogConfirm = async () => {
-    if (!pendingFileUpload) return;
-    
     if (selectedAccessUsers.length === 0) {
       toast({ 
         title: t("stages.accessControl.selectUsersRequired"),
@@ -614,20 +630,35 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
       return;
     }
     
-    setShowAccessDialog(false);
-    await completeFileUpload(
-      pendingFileUpload.file, 
-      pendingFileUpload.fileUrl, 
-      pendingFileUpload.checklistItemKey,
-      selectedAccessUsers
-    );
+    if (editingFileAccess) {
+      updateFileAccessMutation.mutate({
+        fileId: editingFileAccess.id,
+        allowedUserIds: selectedAccessUsers,
+      });
+    } else if (pendingFileUpload) {
+      setShowAccessDialog(false);
+      await completeFileUpload(
+        pendingFileUpload.file, 
+        pendingFileUpload.fileUrl, 
+        pendingFileUpload.checklistItemKey,
+        selectedAccessUsers
+      );
+    }
   };
 
   const handleAccessDialogCancel = () => {
     setShowAccessDialog(false);
     setPendingFileUpload(null);
+    setEditingFileAccess(null);
     setIsUploading(false);
     setUploadingChecklistItem(null);
+    setSelectedAccessUsers([]);
+  };
+
+  const handleEditFileAccess = (file: StageFile) => {
+    setEditingFileAccess(file);
+    setSelectedAccessUsers(file.allowedUserIds || []);
+    setShowAccessDialog(true);
   };
 
   const toggleUserAccess = (userId: string) => {
@@ -1237,19 +1268,40 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
                             {getFilePreviewIcon(file)}
                             <span className="text-sm truncate">{file.fileName}</span>
                           </a>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteFileMutation.mutate(file.id);
-                            }}
-                            disabled={deleteFileMutation.isPending}
-                            data-testid={`button-delete-file-${file.id}`}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            {isFactoryProposalStage() && file.allowedUserIds && file.allowedUserIds.length > 0 && 
+                              (file.uploadedById === currentUser?.id || currentUser?.role === "admin" || currentUser?.role === "superadmin") && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditFileAccess(file);
+                                }}
+                                disabled={updateFileAccessMutation.isPending}
+                                data-testid={`button-edit-access-${file.id}`}
+                                title={t("stages.accessControl.editAccess") || "Edit access"}
+                              >
+                                <Users className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                            {(file.uploadedById === currentUser?.id || currentUser?.role === "admin" || currentUser?.role === "superadmin") && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteFileMutation.mutate(file.id);
+                                }}
+                                disabled={deleteFileMutation.isPending}
+                                data-testid={`button-delete-file-${file.id}`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1465,9 +1517,15 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
       <Dialog open={showAccessDialog} onOpenChange={(open) => !open && handleAccessDialogCancel()}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{t("stages.accessControl.title")}</DialogTitle>
+            <DialogTitle>
+              {editingFileAccess 
+                ? t("stages.accessControl.editTitle") 
+                : t("stages.accessControl.title")}
+            </DialogTitle>
             <DialogDescription>
-              {t("stages.accessControl.description")}
+              {editingFileAccess 
+                ? t("stages.accessControl.editDescription")
+                : t("stages.accessControl.description")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 max-h-64 overflow-y-auto py-2">
@@ -1510,10 +1568,12 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
             </Button>
             <Button
               onClick={handleAccessDialogConfirm}
-              disabled={selectedAccessUsers.length === 0}
+              disabled={selectedAccessUsers.length === 0 || updateFileAccessMutation.isPending}
               data-testid="button-confirm-access"
             >
-              {t("stages.accessControl.confirm")} ({selectedAccessUsers.length})
+              {editingFileAccess 
+                ? t("stages.accessControl.saveChanges")
+                : t("stages.accessControl.confirm")} ({selectedAccessUsers.length})
             </Button>
           </DialogFooter>
         </DialogContent>
