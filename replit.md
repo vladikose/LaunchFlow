@@ -53,10 +53,25 @@ Preferred communication style: Simple, everyday language.
 - **Fonts**: Inter font family (Google Fonts).
 - **APIs**: DeepL API for translation.
 
-## Pending Configuration
+## Recent Features
 
-### Email Service for Password Reset (NOT CONFIGURED)
-- Password reset emails require an email service provider (Resend recommended)
-- Need to add RESEND_API_KEY secret
-- Update forgot-password endpoint in server/auth.ts to send actual emails
-- Current state: Forgot password endpoint only logs the request, does not send emails
+### Image Compression (December 2024)
+- Automatic client-side image compression for uploads >2MB
+- Uses Canvas API for quality reduction and dimension scaling
+- Rejects images that cannot be compressed below 2MB limit with error notification
+- Toast notification shows compression results (before/after size)
+- Configurable via `compressImages` prop in ObjectUploader component (enabled by default)
+- Implemented in: `client/src/lib/imageCompressor.ts`, `client/src/components/ObjectUploader.tsx`
+
+### Password Reset via Email (December 2024)
+- Complete password reset flow with email notifications via Resend API
+- Reset tokens stored in database with 1-hour expiry
+- Pages: `/forgot-password`, `/reset-password?token=...`
+- Endpoints: `POST /api/auth/forgot-password`, `POST /api/auth/reset-password`
+- Requires RESEND_API_KEY secret (configured)
+
+### Translation with DeepL (December 2024)
+- TranslateButton component for user-generated content
+- Supports EN↔RU↔ZH language pairs
+- Used in: comments, task descriptions, revision notes, custom fields
+- Requires DEEPL_API_KEY secret (configured)

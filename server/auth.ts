@@ -2,8 +2,12 @@ import session from "express-session";
 import type { Express, Request, Response, NextFunction, RequestHandler } from "express";
 import connectPg from "connect-pg-simple";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import { Resend } from "resend";
 import { storage } from "./storage";
 import { z } from "zod";
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 declare module "express-session" {
   interface SessionData {
@@ -215,7 +219,40 @@ export function setupAuth(app: Express) {
 
       const user = await storage.getUserByEmail(email);
       if (user) {
-        console.log(`Password reset requested for user: ${email}`);
+        const resetToken = crypto.randomBytes(32).toString("hex");
+        const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
+        
+        await storage.updateUser(user.id, {
+          resetToken,
+          resetTokenExpiry,
+        });
+        
+        const resetUrl = `${req.protocol}://${req.get("host")}/reset-password?token=${resetToken}`;
+        
+        if (resend) {
+          try {
+            await resend.emails.send({
+              from: "LaunchFlow <onboarding@resend.dev>",
+              to: email,
+              subject: "Password Reset - LaunchFlow",
+              html: `
+                <h2>Password Reset Request</h2>
+                <p>You requested to reset your password for LaunchFlow.</p>
+                <p>Click the link below to set a new password:</p>
+                <p><a href="${resetUrl}" style="display:inline-block;padding:12px 24px;background:#0066cc;color:white;text-decoration:none;border-radius:6px;">Reset Password</a></p>
+                <p>Or copy this link: ${resetUrl}</p>
+                <p>This link will expire in 1 hour.</p>
+                <p>If you did not request this, please ignore this email.</p>
+              `,
+            });
+            console.log(`Password reset email sent to: ${email}`);
+          } catch (emailError) {
+            console.error("Failed to send reset email:", emailError);
+          }
+        } else {
+          console.log(`Password reset requested for user: ${email}, but Resend is not configured`);
+          console.log(`Reset URL would be: ${resetUrl}`);
+        }
       }
 
       res.json({ 
@@ -223,6 +260,41 @@ export function setupAuth(app: Express) {
       });
     } catch (error) {
       console.error("Forgot password error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/auth/reset-password", async (req: Request, res: Response) => {
+    try {
+      const { token, newPassword } = req.body;
+      
+      if (!token || !newPassword) {
+        return res.status(400).json({ message: "Token and new password are required" });
+      }
+      
+      if (newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+      
+      const user = await storage.getUserByResetToken(token);
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired reset token" });
+      }
+      
+      if (user.resetTokenExpiry && new Date(user.resetTokenExpiry) < new Date()) {
+        return res.status(400).json({ message: "Reset token has expired" });
+      }
+      
+      const passwordHash = await hashPassword(newPassword);
+      await storage.updateUser(user.id, {
+        passwordHash,
+        resetToken: null,
+        resetTokenExpiry: null,
+      });
+      
+      res.json({ message: "Password has been reset successfully" });
+    } catch (error) {
+      console.error("Reset password error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
