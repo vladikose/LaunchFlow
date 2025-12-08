@@ -1226,26 +1226,34 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
                     </p>
                   )}
                   
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder={t("stages.addComment") || "Add a comment..."}
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && newComment.trim()) {
-                          addCommentMutation.mutate();
-                        }
-                      }}
-                      data-testid={`input-comment-${stage.id}`}
-                    />
-                    <Button
-                      size="icon"
-                      onClick={() => addCommentMutation.mutate()}
-                      disabled={!newComment.trim() || addCommentMutation.isPending}
-                      data-testid={`button-send-comment-${stage.id}`}
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
+                  <div className="space-y-1">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder={t("stages.addComment") || "Add a comment..."}
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value.slice(0, 500))}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && newComment.trim() && newComment.length <= 500) {
+                            addCommentMutation.mutate();
+                          }
+                        }}
+                        maxLength={500}
+                        data-testid={`input-comment-${stage.id}`}
+                      />
+                      <Button
+                        size="icon"
+                        onClick={() => addCommentMutation.mutate()}
+                        disabled={!newComment.trim() || newComment.length > 500 || addCommentMutation.isPending}
+                        data-testid={`button-send-comment-${stage.id}`}
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {newComment.length > 400 && (
+                      <p className={`text-xs text-right ${newComment.length >= 500 ? "text-destructive" : "text-muted-foreground"}`}>
+                        {newComment.length}/500
+                      </p>
+                    )}
                   </div>
                 </div>
 

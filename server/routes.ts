@@ -1309,7 +1309,7 @@ export async function registerRoutes(
   });
 
   const createCommentSchema = z.object({
-    content: z.string().min(1, "Content is required"),
+    content: z.string().min(1, "Content is required").max(500, "Comment must be 500 characters or less"),
   });
 
   app.post("/api/stages/:id/comments", isAuthenticated, async (req: Request, res: Response) => {
