@@ -1116,6 +1116,9 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
                             onBlur={() => handleCustomFieldBlur(field.key)}
                           />
                         )}
+                        {customFieldValues[field.key] && field.type !== "number" && (
+                          <TranslateButton text={customFieldValues[field.key]} className="mt-1" />
+                        )}
                       </div>
                     ))}
                   </div>
