@@ -443,6 +443,7 @@ export default function ProjectDetail() {
                   key={stage.id}
                   stage={stage}
                   projectId={projectId!}
+                  responsibleUserId={project.responsibleUserId}
                   users={users || []}
                   position={index + 1}
                   isExpanded={expandedStages.has(stage.id)}

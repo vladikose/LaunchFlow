@@ -1756,23 +1756,32 @@ export async function registerRoutes(
         return res.status(400).json({ message: fileTypeValidation.message });
       }
       
-      // Factory Proposal stage requires access control
+      // Factory Proposal and Quotation stages require access control
       const isFactoryProposal = stage.name === "Factory Proposal" || 
         stage.template?.name === "Factory Proposal";
+      const isQuotation = stage.name === "Quotation" || 
+        stage.template?.name === "Quotation";
+      const requiresAccessControl = isFactoryProposal || isQuotation;
       
-      if (isFactoryProposal && (!validatedData.allowedUserIds || validatedData.allowedUserIds.length === 0)) {
+      if (requiresAccessControl && (!validatedData.allowedUserIds || validatedData.allowedUserIds.length === 0)) {
         return res.status(400).json({ 
-          message: "Factory Proposal files require selecting users with access" 
+          message: "This stage requires selecting users with access to files" 
         });
       }
       
       // Normalize the file URL to use /objects/ path for proper access
       const normalizedFileUrl = objectStorageService.normalizeObjectEntityPath(validatedData.fileUrl);
       
-      // Auto-include uploader in allowedUserIds if access control is being used
+      // Auto-include uploader and project responsible user in allowedUserIds if access control is being used
       let finalAllowedUserIds = validatedData.allowedUserIds || null;
-      if (finalAllowedUserIds && !finalAllowedUserIds.includes(authUser.id)) {
-        finalAllowedUserIds = [...finalAllowedUserIds, authUser.id];
+      if (finalAllowedUserIds) {
+        if (!finalAllowedUserIds.includes(authUser.id)) {
+          finalAllowedUserIds = [...finalAllowedUserIds, authUser.id];
+        }
+        // Always include project responsible user for Quotation stage files
+        if (isQuotation && project.responsibleUserId && !finalAllowedUserIds.includes(project.responsibleUserId)) {
+          finalAllowedUserIds = [...finalAllowedUserIds, project.responsibleUserId];
+        }
       }
       
       const file = await storage.createStageFile({
@@ -1871,17 +1880,34 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Access denied" });
       }
 
+      // Check if this is a Quotation stage - only project responsible user can edit access
+      const isQuotation = stage.name === "Quotation" || stage.template?.name === "Quotation";
+      const isResponsibleUser = project.responsibleUserId === authUser.id;
       const isUploader = stageFile.uploadedById === authUser.id;
       const isAdmin = user.role === "admin" || user.role === "superadmin";
       
-      if (!isUploader && !isAdmin) {
-        return res.status(403).json({ message: "Only file uploader or administrators can edit access control" });
+      if (isQuotation) {
+        // For Quotation stage, only responsible user can edit access
+        if (!isResponsibleUser) {
+          return res.status(403).json({ message: "Only project responsible user can edit file access for Quotation stage" });
+        }
+      } else {
+        // For other stages (Factory Proposal), uploader or admin can edit
+        if (!isUploader && !isAdmin) {
+          return res.status(403).json({ message: "Only file uploader or administrators can edit access control" });
+        }
       }
 
       const validatedData = updateFileAccessSchema.parse(req.body);
 
+      // For Quotation stage, always ensure responsible user has access
+      let finalAllowedUserIds = validatedData.allowedUserIds;
+      if (isQuotation && finalAllowedUserIds && project.responsibleUserId && !finalAllowedUserIds.includes(project.responsibleUserId)) {
+        finalAllowedUserIds = [...finalAllowedUserIds, project.responsibleUserId];
+      }
+
       const updatedFile = await storage.updateStageFile(req.params.fileId, {
-        allowedUserIds: validatedData.allowedUserIds,
+        allowedUserIds: finalAllowedUserIds,
       });
 
       res.json(updatedFile);

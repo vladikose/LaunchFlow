@@ -60,13 +60,14 @@ import { TranslateButton } from "./TranslateButton";
 interface StageCardProps {
   stage: StageWithRelations;
   projectId: string;
+  responsibleUserId?: string | null;
   users: User[];
   position: number;
   isExpanded: boolean;
   onToggle: () => void;
 }
 
-export function StageCard({ stage, projectId, users, position, isExpanded, onToggle }: StageCardProps) {
+export function StageCard({ stage, projectId, responsibleUserId, users, position, isExpanded, onToggle }: StageCardProps) {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
@@ -524,6 +525,23 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
       templateName === "Quotation" ||
       templateNameRu === "Предложение от завода"
     );
+  };
+
+  const isQuotationStage = () => {
+    const templateName = stage.template?.name || stage.name || "";
+    return templateName === "Quotation";
+  };
+
+  const canEditFileAccess = (file: StageFile) => {
+    if (!currentUser) return false;
+    
+    if (isQuotationStage()) {
+      return currentUser.id === responsibleUserId;
+    }
+    
+    return file.uploadedById === currentUser.id || 
+           currentUser.role === "admin" || 
+           currentUser.role === "superadmin";
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, checklistItemKey?: string) => {
@@ -1284,7 +1302,7 @@ export function StageCard({ stage, projectId, users, position, isExpanded, onTog
                           </a>
                           <div className="flex items-center gap-1">
                             {isFactoryProposalStage() && file.allowedUserIds && file.allowedUserIds.length > 0 && 
-                              (file.uploadedById === currentUser?.id || currentUser?.role === "admin" || currentUser?.role === "superadmin") && (
+                              canEditFileAccess(file) && (
                               <Button
                                 variant="ghost"
                                 size="icon"
