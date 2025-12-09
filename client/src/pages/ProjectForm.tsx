@@ -241,6 +241,7 @@ export default function ProjectForm() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId, "products"] });
       toast({ title: t("projects.updateSuccess") });
       navigate(`/projects/${projectId}`);
     },
