@@ -75,25 +75,33 @@ export default function ProjectDetail() {
 
   const uploadCroppedImageMutation = useMutation({
     mutationFn: async (blob: Blob) => {
-      const formData = new FormData();
-      formData.append("file", blob, `cover-${Date.now()}.jpg`);
-      formData.append("directory", "public/covers");
-      
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
+      const urlResponse = await fetch("/api/objects/upload-url", {
         credentials: "include",
       });
       
-      if (!response.ok) {
+      if (!urlResponse.ok) {
+        throw new Error("Failed to get upload URL");
+      }
+      
+      const { url } = await urlResponse.json();
+      
+      const uploadResponse = await fetch(url, {
+        method: "PUT",
+        body: blob,
+        headers: {
+          "Content-Type": "image/jpeg",
+        },
+      });
+      
+      if (!uploadResponse.ok) {
         throw new Error("Failed to upload cropped image");
       }
       
-      const data = await response.json();
-      return data.objectId || data.url;
+      const objectUrl = url.split("?")[0];
+      return objectUrl;
     },
-    onSuccess: (objectId: string) => {
-      updateCoverImageMutation.mutate(objectId);
+    onSuccess: (objectUrl: string) => {
+      updateCoverImageMutation.mutate(objectUrl);
       setCropperOpen(false);
       setSelectedImageForCrop(null);
     },
