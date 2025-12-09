@@ -232,7 +232,7 @@ export function setupAuth(app: Express) {
         if (resend) {
           try {
             await resend.emails.send({
-              from: "LaunchFlow <onboarding@resend.dev>",
+              from: "LaunchFlow <noreply@prod.omoikiri.ru>",
               to: email,
               subject: "Password Reset - LaunchFlow",
               html: `
