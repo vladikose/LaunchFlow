@@ -940,6 +940,50 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/projects/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const project = await storage.getProjectById(req.params.id);
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+      
+      const updateData: Record<string, unknown> = {};
+      
+      if (req.body.coverImageId !== undefined) {
+        updateData.coverImageId = req.body.coverImageId;
+      }
+      if (req.body.name !== undefined) {
+        updateData.name = req.body.name;
+      }
+      if (req.body.description !== undefined) {
+        updateData.description = req.body.description;
+      }
+      if (req.body.responsibleUserId !== undefined) {
+        updateData.responsibleUserId = req.body.responsibleUserId;
+      }
+      if (req.body.deadline !== undefined) {
+        updateData.deadline = req.body.deadline ? new Date(req.body.deadline) : null;
+      }
+      if (req.body.factoryId !== undefined) {
+        updateData.factoryId = req.body.factoryId;
+      }
+      if (req.body.productTypeId !== undefined) {
+        updateData.productTypeId = req.body.productTypeId;
+      }
+      
+      const updatedProject = await storage.updateProject(req.params.id, updateData);
+      res.json(updatedProject);
+    } catch (error) {
+      console.error("Error patching project:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.delete("/api/projects/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const authUser = getUser(req);

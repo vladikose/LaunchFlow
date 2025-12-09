@@ -97,11 +97,16 @@ export default function ProjectDetail() {
         throw new Error("Failed to upload cropped image");
       }
       
-      const objectUrl = url.split("?")[0];
-      return objectUrl;
+      const baseUrl = url.split("?")[0];
+      const uploadsIndex = baseUrl.indexOf("/uploads/");
+      if (uploadsIndex === -1) {
+        throw new Error("Invalid upload URL format");
+      }
+      const objectId = `/objects${baseUrl.substring(uploadsIndex)}`;
+      return objectId;
     },
-    onSuccess: (objectUrl: string) => {
-      updateCoverImageMutation.mutate(objectUrl);
+    onSuccess: (objectId: string) => {
+      updateCoverImageMutation.mutate(objectId);
       setCropperOpen(false);
       setSelectedImageForCrop(null);
     },
