@@ -63,6 +63,7 @@ export default function ProjectDetail() {
       return apiRequest("PATCH", `/api/projects/${projectId}`, { coverImageId });
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
       setImagePickerOpen(false);
       toast({ title: t("projects.coverImageUpdated") || "Cover image updated" });
