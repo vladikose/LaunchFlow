@@ -1980,11 +1980,7 @@ export async function registerRoutes(
       
       const stageFile = await storage.getStageFileByUrl(normalizedPath);
       
-      if (!stageFile) {
-        return res.status(404).json({ message: "File not found" });
-      }
-      
-      if (stageFile.allowedUserIds && stageFile.allowedUserIds.length > 0) {
+      if (stageFile && stageFile.allowedUserIds && stageFile.allowedUserIds.length > 0) {
         const authUser = getUser(req);
         if (!authUser) {
           return res.status(401).json({ message: "Authentication required for this file" });
