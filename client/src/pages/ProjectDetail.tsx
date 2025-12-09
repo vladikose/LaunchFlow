@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { StageCard } from "@/components/StageCard";
+import { ImageCropper } from "@/components/ImageCropper";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getObjectUrl } from "@/lib/objectStorage";
@@ -27,6 +28,7 @@ import {
   ChevronUp,
   ImageIcon,
   Check,
+  Crop,
 } from "lucide-react";
 import type { Project, Product, User as UserType, StageWithRelations, StageFile } from "@shared/schema";
 
@@ -45,6 +47,8 @@ export default function ProjectDetail() {
   const [allExpanded, setAllExpanded] = useState(false);
   const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set());
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [selectedImageForCrop, setSelectedImageForCrop] = useState<string | null>(null);
 
   const { data: project, isLoading } = useQuery<ProjectWithDetails>({
     queryKey: ["/api/projects", projectId],
@@ -67,6 +71,45 @@ export default function ProjectDetail() {
       toast({ title: t("common.error"), description: error.message, variant: "destructive" });
     },
   });
+
+  const uploadCroppedImageMutation = useMutation({
+    mutationFn: async (blob: Blob) => {
+      const formData = new FormData();
+      formData.append("file", blob, `cover-${Date.now()}.jpg`);
+      formData.append("directory", "public/covers");
+      
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to upload cropped image");
+      }
+      
+      const data = await response.json();
+      return data.objectId || data.url;
+    },
+    onSuccess: (objectId: string) => {
+      updateCoverImageMutation.mutate(objectId);
+      setCropperOpen(false);
+      setSelectedImageForCrop(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: t("common.error"), description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleImageClick = (imageSrc: string) => {
+    setSelectedImageForCrop(imageSrc);
+    setCropperOpen(true);
+    setImagePickerOpen(false);
+  };
+
+  const handleCropComplete = (croppedBlob: Blob) => {
+    uploadCroppedImageMutation.mutate(croppedBlob);
+  };
 
   const generateStagesMutation = useMutation({
     mutationFn: async () => {
@@ -269,10 +312,11 @@ export default function ProjectDetail() {
                       {renderImages.map((file) => {
                         const objectId = normalizeObjectId(file.fileUrl);
                         if (!objectId) return null;
+                        const imageSrc = getImageSrc(objectId);
                         return (
                           <button
                             key={file.id}
-                            onClick={() => updateCoverImageMutation.mutate(objectId)}
+                            onClick={() => handleImageClick(imageSrc)}
                             className={`relative aspect-square rounded-md overflow-hidden border-2 transition-colors ${
                               currentCoverImageId === objectId
                                 ? "border-primary"
@@ -281,13 +325,16 @@ export default function ProjectDetail() {
                             data-testid={`button-cover-image-${file.id}`}
                           >
                             <img
-                              src={getImageSrc(objectId)}
+                              src={imageSrc}
                               alt={file.fileName || "Render image"}
                               className="h-full w-full object-cover"
                             />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <Crop className="h-5 w-5 text-white" />
+                            </div>
                             {currentCoverImageId === objectId && (
-                              <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                                <Check className="h-5 w-5 text-primary" />
+                              <div className="absolute bottom-1 right-1">
+                                <Check className="h-4 w-4 text-primary bg-white rounded-full p-0.5" />
                               </div>
                             )}
                           </button>
@@ -295,6 +342,9 @@ export default function ProjectDetail() {
                       })}
                     </div>
                   </ScrollArea>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {t("projects.clickToCrop") || "Click on an image to crop and set as cover"}
+                  </p>
                 </div>
               </PopoverContent>
             )}
@@ -471,6 +521,19 @@ export default function ProjectDetail() {
           )}
         </div>
       </div>
+
+      {selectedImageForCrop && (
+        <ImageCropper
+          imageSrc={selectedImageForCrop}
+          open={cropperOpen}
+          onClose={() => {
+            setCropperOpen(false);
+            setSelectedImageForCrop(null);
+          }}
+          onCropComplete={handleCropComplete}
+          aspectRatio={1}
+        />
+      )}
     </div>
   );
 }

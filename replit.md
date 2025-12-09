@@ -75,3 +75,10 @@ Preferred communication style: Simple, everyday language.
 - Supports EN↔RU↔ZH language pairs
 - Used in: comments, task descriptions, revision notes, custom fields
 - Requires DEEPL_API_KEY secret (configured)
+
+### Cover Image Cropping (December 2024)
+- Interactive image cropping when selecting project cover image
+- Uses react-image-crop library with 1:1 aspect ratio
+- Cropped images are uploaded to object storage as new files
+- Available in Project Detail page when clicking on cover image selector
+- Implemented in: `client/src/components/ImageCropper.tsx`, `client/src/pages/ProjectDetail.tsx`
