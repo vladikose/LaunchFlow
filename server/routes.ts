@@ -224,11 +224,11 @@ export async function registerRoutes(
       if (!authUser) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      const users = await storage.getAllUsers();
+      const companyId = await requireUserCompany(authUser.id);
+      const users = await storage.getUsersByCompany(companyId);
       res.json(users);
     } catch (error) {
-      console.error("Error getting users:", error);
-      res.status(500).json({ message: "Internal server error" });
+      handleRouteError(error, res, "getting users");
     }
   });
 
