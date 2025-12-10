@@ -30,16 +30,18 @@ import {
   Check,
   Crop,
 } from "lucide-react";
-import type { Project, Product, User as UserType, StageWithRelations, StageFile } from "@shared/schema";
+import type { Project, Product, User as UserType, StageWithRelations, StageFile, Factory, ProductType } from "@shared/schema";
 
 interface ProjectWithDetails extends Project {
   products?: Product[];
   stages?: StageWithRelations[];
   responsibleUser?: UserType;
+  factory?: Factory | null;
+  productType?: ProductType | null;
 }
 
 export default function ProjectDetail() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [, navigate] = useLocation();
   const [, params] = useRoute("/projects/:id");
   const projectId = params?.id;
@@ -369,6 +371,28 @@ export default function ProjectDetail() {
             {project.description && (
               <p className="text-muted-foreground">{project.description}</p>
             )}
+            
+            <div className="flex flex-wrap items-center gap-4 text-sm">
+              {project.factory && (
+                <div className="flex items-center gap-1.5" data-testid="text-factory">
+                  <span className="text-muted-foreground">{t("projects.factory")}:</span>
+                  <span className="font-medium">{project.factory.name}</span>
+                </div>
+              )}
+              {project.productType && (
+                <div className="flex items-center gap-1.5" data-testid="text-product-type">
+                  <span className="text-muted-foreground">{t("projects.productType")}:</span>
+                  <span className="font-medium">
+                    {i18n.language === "ru" && project.productType.nameRu
+                      ? project.productType.nameRu
+                      : i18n.language === "zh" && project.productType.nameZh
+                      ? project.productType.nameZh
+                      : project.productType.name}
+                  </span>
+                </div>
+              )}
+            </div>
+            
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium">{t("projects.progress") || "Progress"}</span>
               <div className="flex-1 max-w-xs">
