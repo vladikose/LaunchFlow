@@ -910,6 +910,8 @@ export async function registerRoutes(
         description: validatedData.description || null,
         responsibleUserId: validatedData.responsibleUserId || null,
         deadline: validatedData.deadline ? new Date(validatedData.deadline) : null,
+        factoryId: validatedData.factoryId || null,
+        productTypeId: validatedData.productTypeId || null,
       });
 
       if (!project) {
