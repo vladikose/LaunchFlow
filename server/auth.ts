@@ -3,11 +3,21 @@ import type { Express, Request, Response, NextFunction, RequestHandler } from "e
 import connectPg from "connect-pg-simple";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import { storage } from "./storage";
 import { z } from "zod";
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const emailTransporter = process.env.YANDEX_EMAIL && process.env.YANDEX_APP_PASSWORD
+  ? nodemailer.createTransport({
+      host: "smtp.yandex.ru",
+      port: 465,
+      secure: true,
+      auth: {
+        user: process.env.YANDEX_EMAIL,
+        pass: process.env.YANDEX_APP_PASSWORD,
+      },
+    })
+  : null;
 
 declare module "express-session" {
   interface SessionData {
@@ -229,10 +239,10 @@ export function setupAuth(app: Express) {
         
         const resetUrl = `${req.protocol}://${req.get("host")}/reset-password?token=${resetToken}`;
         
-        if (resend) {
+        if (emailTransporter) {
           try {
-            await resend.emails.send({
-              from: "LaunchFlow <noreply@prod.omoikiri.ru>",
+            await emailTransporter.sendMail({
+              from: `LaunchFlow <${process.env.YANDEX_EMAIL}>`,
               to: email,
               subject: "Password Reset - LaunchFlow",
               html: `
@@ -250,7 +260,7 @@ export function setupAuth(app: Express) {
             console.error("Failed to send reset email:", emailError);
           }
         } else {
-          console.log(`Password reset requested for user: ${email}, but Resend is not configured`);
+          console.log(`Password reset requested for user: ${email}, but Yandex SMTP is not configured`);
           console.log(`Reset URL would be: ${resetUrl}`);
         }
       }
