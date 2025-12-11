@@ -229,15 +229,13 @@ export function setupAuth(app: Express) {
 
       const user = await storage.getUserByEmail(email);
       if (user) {
-        const resetToken = crypto.randomBytes(32).toString("hex");
+        const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
         const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
         
         await storage.updateUser(user.id, {
-          resetToken,
+          resetToken: resetCode,
           resetTokenExpiry,
         });
-        
-        const resetUrl = `${req.protocol}://${req.get("host")}/reset-password?token=${resetToken}`;
         
         if (emailTransporter) {
           try {
@@ -245,26 +243,25 @@ export function setupAuth(app: Express) {
             await emailTransporter.sendMail({
               from: process.env.YANDEX_EMAIL,
               to: email,
-              subject: `${userName}, восстановление пароля`,
-              text: `Здравствуйте, ${userName}!\n\nВы запросили восстановление пароля.\n\nДля установки нового пароля перейдите по ссылке:\n${resetUrl}\n\nСсылка действительна 1 час.\n\nЕсли вы не запрашивали восстановление пароля, проигнорируйте это письмо.`,
+              subject: `Код: ${resetCode}`,
+              text: `Здравствуйте, ${userName}!\n\nВаш код для сброса пароля: ${resetCode}\n\nКод действителен 1 час.\n\nЕсли вы не запрашивали сброс пароля, проигнорируйте это письмо.`,
               html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="font-family: Arial, sans-serif;">
                   <p>Здравствуйте, ${userName}!</p>
-                  <p>Вы запросили восстановление пароля.</p>
-                  <p>Для установки нового пароля перейдите по ссылке:</p>
-                  <p><a href="${resetUrl}">${resetUrl}</a></p>
-                  <p>Ссылка действительна 1 час.</p>
-                  <p>Если вы не запрашивали восстановление пароля, проигнорируйте это письмо.</p>
+                  <p>Ваш код для сброса пароля:</p>
+                  <p style="font-size: 24px; font-weight: bold; letter-spacing: 4px;">${resetCode}</p>
+                  <p>Код действителен 1 час.</p>
+                  <p>Если вы не запрашивали сброс пароля, проигнорируйте это письмо.</p>
                 </div>
               `,
             });
-            console.log(`Password reset email sent to: ${email}`);
+            console.log(`Password reset code sent to: ${email}`);
           } catch (emailError) {
             console.error("Failed to send reset email:", emailError);
           }
         } else {
           console.log(`Password reset requested for user: ${email}, but Yandex SMTP is not configured`);
-          console.log(`Reset URL would be: ${resetUrl}`);
+          console.log(`Reset code would be: ${resetCode}`);
         }
       }
 

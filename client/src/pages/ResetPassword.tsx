@@ -15,6 +15,7 @@ import { Loader2, CheckCircle, ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 
 type ResetPasswordFormData = {
+  code: string;
   newPassword: string;
   confirmPassword: string;
 };
@@ -23,10 +24,11 @@ export default function ResetPassword() {
   const { t } = useTranslation();
   const { toast } = useToast();
   const searchParams = useSearch();
-  const token = new URLSearchParams(searchParams).get("token");
+  const tokenFromUrl = new URLSearchParams(searchParams).get("token");
   const [isSuccess, setIsSuccess] = useState(false);
 
   const resetPasswordSchema = useMemo(() => z.object({
+    code: z.string().min(6, t("auth.codeRequired")).max(6),
     newPassword: z.string().min(6, t("auth.passwordRequirements")),
     confirmPassword: z.string().min(6, t("auth.passwordRequirements")),
   }).refine((data) => data.newPassword === data.confirmPassword, {
@@ -37,6 +39,7 @@ export default function ResetPassword() {
   const form = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
+      code: tokenFromUrl || "",
       newPassword: "",
       confirmPassword: "",
     },
@@ -45,7 +48,7 @@ export default function ResetPassword() {
   const resetMutation = useMutation({
     mutationFn: async (data: ResetPasswordFormData) => {
       const response = await apiRequest("POST", "/api/auth/reset-password", {
-        token,
+        token: data.code,
         newPassword: data.newPassword,
       });
       return response.json();
@@ -65,28 +68,6 @@ export default function ResetPassword() {
   const onSubmit = (data: ResetPasswordFormData) => {
     resetMutation.mutate(data);
   };
-
-  if (!token) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle>{t("auth.invalidLink")}</CardTitle>
-            <CardDescription>
-              {t("auth.invalidResetLink")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <Link href="/forgot-password">
-              <Button variant="outline" data-testid="link-request-new">
-                {t("auth.requestNewLink")}
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   if (isSuccess) {
     return (
@@ -119,12 +100,33 @@ export default function ResetPassword() {
         <CardHeader className="text-center">
           <CardTitle>{t("auth.resetPassword")}</CardTitle>
           <CardDescription>
-            {t("auth.resetPasswordDesc")}
+            {t("auth.enterCodeAndNewPassword")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("auth.resetCode")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="text"
+                        placeholder="123456"
+                        maxLength={6}
+                        {...field}
+                        data-testid="input-reset-code"
+                        className="text-center text-lg tracking-widest"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="newPassword"
