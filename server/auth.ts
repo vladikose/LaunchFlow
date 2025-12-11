@@ -241,18 +241,21 @@ export function setupAuth(app: Express) {
         
         if (emailTransporter) {
           try {
+            const userName = user.firstName || user.username || 'User';
             await emailTransporter.sendMail({
-              from: `LaunchFlow <${process.env.YANDEX_EMAIL}>`,
+              from: process.env.YANDEX_EMAIL,
               to: email,
-              subject: "Password Reset - LaunchFlow",
+              subject: `${userName}, восстановление пароля`,
+              text: `Здравствуйте, ${userName}!\n\nВы запросили восстановление пароля.\n\nДля установки нового пароля перейдите по ссылке:\n${resetUrl}\n\nСсылка действительна 1 час.\n\nЕсли вы не запрашивали восстановление пароля, проигнорируйте это письмо.`,
               html: `
-                <h2>Password Reset Request</h2>
-                <p>You requested to reset your password for LaunchFlow.</p>
-                <p>Click the link below to set a new password:</p>
-                <p><a href="${resetUrl}" style="display:inline-block;padding:12px 24px;background:#0066cc;color:white;text-decoration:none;border-radius:6px;">Reset Password</a></p>
-                <p>Or copy this link: ${resetUrl}</p>
-                <p>This link will expire in 1 hour.</p>
-                <p>If you did not request this, please ignore this email.</p>
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <p>Здравствуйте, ${userName}!</p>
+                  <p>Вы запросили восстановление пароля.</p>
+                  <p>Для установки нового пароля перейдите по ссылке:</p>
+                  <p><a href="${resetUrl}">${resetUrl}</a></p>
+                  <p>Ссылка действительна 1 час.</p>
+                  <p>Если вы не запрашивали восстановление пароля, проигнорируйте это письмо.</p>
+                </div>
               `,
             });
             console.log(`Password reset email sent to: ${email}`);
