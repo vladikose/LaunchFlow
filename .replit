@@ -45,4 +45,4 @@ integrations = ["javascript_log_in_with_replit:1.0.0", "javascript_database:1.0.
 
 [userenv.shared]
 SENDGRID_API_KEY = "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"
-SENDGRID_FROM_EMAIL = "password@launchflow.com"
+SENDGRID_FROM_EMAIL = "g.anna1@internet.ru"
