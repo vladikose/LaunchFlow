@@ -7,17 +7,19 @@ import nodemailer from "nodemailer";
 import { storage } from "./storage";
 import { z } from "zod";
 
-const emailTransporter = process.env.YANDEX_EMAIL && process.env.YANDEX_APP_PASSWORD
+const emailTransporter = process.env.SENDGRID_API_KEY
   ? nodemailer.createTransport({
-      host: "smtp.yandex.ru",
+      host: "smtp.sendgrid.net",
       port: 465,
       secure: true,
       auth: {
-        user: process.env.YANDEX_EMAIL,
-        pass: process.env.YANDEX_APP_PASSWORD,
+        user: "apikey",
+        pass: process.env.SENDGRID_API_KEY,
       },
     })
   : null;
+
+const SENDER_EMAIL = process.env.SENDGRID_FROM_EMAIL || "noreply@launchflow.app";
 
 declare module "express-session" {
   interface SessionData {
@@ -241,7 +243,7 @@ export function setupAuth(app: Express) {
           try {
             const userName = user.firstName || user.username || 'User';
             await emailTransporter.sendMail({
-              from: process.env.YANDEX_EMAIL,
+              from: SENDER_EMAIL,
               to: email,
               subject: `Код: ${resetCode}`,
               text: `Здравствуйте, ${userName}!\n\nВаш код для сброса пароля: ${resetCode}\n\nКод действителен 1 час.\n\nЕсли вы не запрашивали сброс пароля, проигнорируйте это письмо.`,
@@ -260,7 +262,7 @@ export function setupAuth(app: Express) {
             console.error("Failed to send reset email:", emailError);
           }
         } else {
-          console.log(`Password reset requested for user: ${email}, but Yandex SMTP is not configured`);
+          console.log(`Password reset requested for user: ${email}, but SendGrid is not configured`);
           console.log(`Reset code would be: ${resetCode}`);
         }
       }
