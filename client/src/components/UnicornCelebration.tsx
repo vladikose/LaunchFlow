@@ -66,17 +66,30 @@ type AnimationConfig = {
   scale?: number[];
 };
 
+type TransitionConfig = {
+  duration: number;
+  ease?: string | number[];
+  repeat?: number;
+  repeatType?: "reverse" | "loop" | "mirror";
+};
+
 const animations: Record<AnimationType, { 
   unicorn: AnimationConfig; 
-  transition: { duration: number; ease: string };
+  transition: TransitionConfig;
 }> = {
   dance: {
     unicorn: {
-      rotate: [-10, 10, -10, 10, -10, 10, 0],
-      y: [0, -20, 0, -20, 0, -20, 0],
-      scale: [1, 1.05, 1, 1.05, 1, 1.05, 1]
+      rotate: [0, -3, 5, -4, 6, -5, 4, -3, 2, 0],
+      y: [0, -8, -15, -12, -18, -10, -16, -8, -5, 0],
+      x: [0, 8, -5, 12, -8, 10, -6, 5, -3, 0],
+      scale: [1, 1.02, 1.04, 1.02, 1.05, 1.03, 1.04, 1.02, 1.01, 1]
     },
-    transition: { duration: 2, ease: "easeInOut" }
+    transition: { 
+      duration: 3.5, 
+      ease: [0.4, 0, 0.2, 1],
+      repeat: 1,
+      repeatType: "reverse"
+    }
   },
   hug: {
     unicorn: {
