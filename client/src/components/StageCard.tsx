@@ -56,6 +56,7 @@ import {
 import type { StageWithRelations, User, StageFile, CustomField, DistributionData, TemplateBlock, ChecklistBlockConfig, ChecklistItemConfig, Product, ProductsBlockConfig } from "@shared/schema";
 import { DistributionPrepBlock } from "./DistributionPrepBlock";
 import { TranslateButton } from "./TranslateButton";
+import { UnicornCelebration } from "./UnicornCelebration";
 
 interface StageCardProps {
   stage: StageWithRelations;
@@ -104,6 +105,7 @@ export function StageCard({ stage, projectId, responsibleUserId, users, position
     checklistItemKey?: string;
   } | null>(null);
   const [editingFileAccess, setEditingFileAccess] = useState<StageFile | null>(null);
+  const [showUnicorn, setShowUnicorn] = useState(false);
 
   const getChecklistItemConfigs = (): Map<string, ChecklistItemConfig> => {
     const configMap = new Map<string, ChecklistItemConfig>();
@@ -222,9 +224,12 @@ export function StageCard({ stage, projectId, responsibleUserId, users, position
     mutationFn: async (newStatus: string) => {
       return apiRequest("PATCH", `/api/stages/${stage.id}`, { status: newStatus });
     },
-    onSuccess: () => {
+    onSuccess: (_, newStatus) => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
       toast({ title: t("stages.statusUpdated") || "Status updated" });
+      if (newStatus === "completed") {
+        setShowUnicorn(true);
+      }
     },
     onError: () => {
       toast({ title: t("stages.statusUpdateFailed") || "Failed to update status", variant: "destructive" });
@@ -1610,6 +1615,11 @@ export function StageCard({ stage, projectId, responsibleUserId, users, position
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <UnicornCelebration 
+        show={showUnicorn} 
+        onClose={() => setShowUnicorn(false)} 
+      />
     </>
   );
 }
