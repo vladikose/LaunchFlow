@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import unicornImage from "@assets/generated_images/cute_kawaii_unicorn_mascot.png";
+import unicornImage from "@assets/generated_images/chibi_unicorn_sticker_style.png";
 
 const phrases = {
   en: [
@@ -117,7 +117,8 @@ export function UnicornCelebration({ show, onClose }: UnicornCelebrationProps) {
                 top: `${unicorn.y}%`,
                 width: `${unicorn.size}px`,
                 height: `${unicorn.size}px`,
-                transform: "translate(-50%, -50%)"
+                transform: "translate(-50%, -50%)",
+                mixBlendMode: "multiply"
               }}
               initial={{ opacity: 0, scale: 0 }}
               animate={{ opacity: 1, scale: 1 }}
