@@ -7,19 +7,19 @@ import nodemailer from "nodemailer";
 import { storage } from "./storage";
 import { z } from "zod";
 
-const emailTransporter = process.env.SENDGRID_API_KEY
+const emailTransporter = process.env.YANDEX_EMAIL && process.env.YANDEX_APP_PASSWORD
   ? nodemailer.createTransport({
-      host: "smtp.sendgrid.net",
+      host: "smtp.yandex.ru",
       port: 465,
       secure: true,
       auth: {
-        user: "apikey",
-        pass: process.env.SENDGRID_API_KEY,
+        user: process.env.YANDEX_EMAIL,
+        pass: process.env.YANDEX_APP_PASSWORD,
       },
     })
   : null;
 
-const SENDER_EMAIL = process.env.SENDGRID_FROM_EMAIL || "noreply@launchflow.app";
+const SENDER_EMAIL = process.env.YANDEX_EMAIL || "noreply@launchflow.app";
 
 declare module "express-session" {
   interface SessionData {
@@ -241,7 +241,7 @@ export function setupAuth(app: Express) {
         
         if (emailTransporter) {
           try {
-            const userName = user.firstName || user.username || 'User';
+            const userName = user.firstName || 'User';
             await emailTransporter.sendMail({
               from: SENDER_EMAIL,
               to: email,
