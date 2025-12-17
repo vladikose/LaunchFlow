@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import unicornImage from "@assets/generated_images/cute_unicorn_white_background.png";
+import unicornImage from "@assets/generated_images/unicorn_without_white_border.png";
 
 const phrases = {
   en: [
