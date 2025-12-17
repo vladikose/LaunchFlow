@@ -156,8 +156,9 @@ export default function ProjectDetail() {
   };
 
   const handleStageComplete = () => {
-    setTimeout(() => {
-      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+    setTimeout(async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      await queryClient.refetchQueries({ queryKey: ["/api/projects", projectId] });
       const updatedProject = queryClient.getQueryData<ProjectWithDetails>(["/api/projects", projectId]);
       if (updatedProject?.stages && updatedProject.stages.length > 0) {
         const allCompleted = updatedProject.stages.every(s => s.status === "completed");
@@ -165,7 +166,7 @@ export default function ProjectDetail() {
           setShowFireworks(true);
         }
       }
-    }, 500);
+    }, 800);
   };
 
   const handleToggleStage = (stageId: string) => {
