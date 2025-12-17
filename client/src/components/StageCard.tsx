@@ -66,9 +66,10 @@ interface StageCardProps {
   position: number;
   isExpanded: boolean;
   onToggle: () => void;
+  onStageComplete?: () => void;
 }
 
-export function StageCard({ stage, projectId, responsibleUserId, users, position, isExpanded, onToggle }: StageCardProps) {
+export function StageCard({ stage, projectId, responsibleUserId, users, position, isExpanded, onToggle, onStageComplete }: StageCardProps) {
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
@@ -229,6 +230,7 @@ export function StageCard({ stage, projectId, responsibleUserId, users, position
       toast({ title: t("stages.statusUpdated") || "Status updated" });
       if (newStatus === "completed") {
         setShowUnicorn(true);
+        onStageComplete?.();
       }
     },
     onError: () => {

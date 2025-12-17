@@ -16,6 +16,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { StageCard } from "@/components/StageCard";
 import { ImageCropper } from "@/components/ImageCropper";
+import { FireworksCelebration } from "@/components/FireworksCelebration";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getObjectUrl } from "@/lib/objectStorage";
@@ -51,6 +52,7 @@ export default function ProjectDetail() {
   const [imagePickerOpen, setImagePickerOpen] = useState(false);
   const [cropperOpen, setCropperOpen] = useState(false);
   const [selectedImageForCrop, setSelectedImageForCrop] = useState<string | null>(null);
+  const [showFireworks, setShowFireworks] = useState(false);
 
   const { data: project, isLoading } = useQuery<ProjectWithDetails>({
     queryKey: ["/api/projects", projectId],
@@ -151,6 +153,19 @@ export default function ProjectDetail() {
   const handleCollapseAll = () => {
     setExpandedStages(new Set());
     setAllExpanded(false);
+  };
+
+  const handleStageComplete = () => {
+    setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      const updatedProject = queryClient.getQueryData<ProjectWithDetails>(["/api/projects", projectId]);
+      if (updatedProject?.stages && updatedProject.stages.length > 0) {
+        const allCompleted = updatedProject.stages.every(s => s.status === "completed");
+        if (allCompleted) {
+          setShowFireworks(true);
+        }
+      }
+    }, 500);
   };
 
   const handleToggleStage = (stageId: string) => {
@@ -536,6 +551,7 @@ export default function ProjectDetail() {
                   position={index + 1}
                   isExpanded={expandedStages.has(stage.id)}
                   onToggle={() => handleToggleStage(stage.id)}
+                  onStageComplete={handleStageComplete}
                 />
               ))
           ) : (
@@ -572,6 +588,11 @@ export default function ProjectDetail() {
           aspectRatio={1}
         />
       )}
+
+      <FireworksCelebration
+        show={showFireworks}
+        onClose={() => setShowFireworks(false)}
+      />
     </div>
   );
 }
