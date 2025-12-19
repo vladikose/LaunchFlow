@@ -13,8 +13,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getObjectUrl } from "@/lib/objectStorage";
-import { User, Camera, Mail, Briefcase, Info, Check } from "lucide-react";
+import { User, Camera, Mail, Briefcase, Info, Check, Lock } from "lucide-react";
 import type { User as UserType } from "@shared/schema";
+
+interface UserWithPasswordFlag extends UserType {
+  hasPassword?: boolean;
+}
 
 import orangeCatAvatar from "@assets/generated_images/orange_tabby_cat_avatar.png";
 import grayCatAvatar from "@assets/generated_images/gray_fluffy_cat_avatar.png";
@@ -49,9 +53,55 @@ export default function Settings() {
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
 
-  const { data: user, isLoading } = useQuery<UserType>({
+  const { data: user, isLoading } = useQuery<UserWithPasswordFlag>({
     queryKey: ["/api/auth/user"],
   });
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
+      return apiRequest("POST", "/api/auth/set-password", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: t("settings.passwordChanged"),
+        description: t("settings.passwordChangedDesc"),
+      });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    },
+    onError: () => {
+      toast({
+        title: t("common.error"),
+        description: t("settings.passwordChangeError"),
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handlePasswordChange = () => {
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: t("common.error"),
+        description: t("settings.passwordMismatch"),
+        variant: "destructive",
+      });
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast({
+        title: t("common.error"),
+        description: t("settings.passwordTooShort"),
+        variant: "destructive",
+      });
+      return;
+    }
+    changePasswordMutation.mutate({ currentPassword, newPassword });
+  };
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -357,12 +407,57 @@ export default function Settings() {
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Info className="h-5 w-5" />
+              <Lock className="h-5 w-5" />
               {t("settings.passwordSection")}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">{t("settings.passwordNote")}</p>
+            {user?.hasPassword ? (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">{t("settings.currentPassword")}</Label>
+                  <Input
+                    id="currentPassword"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder={t("settings.currentPasswordPlaceholder")}
+                    data-testid="input-current-password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">{t("settings.newPassword")}</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder={t("settings.newPasswordPlaceholder")}
+                    data-testid="input-new-password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">{t("settings.confirmPassword")}</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder={t("settings.confirmPasswordPlaceholder")}
+                    data-testid="input-confirm-password"
+                  />
+                </div>
+                <Button
+                  onClick={handlePasswordChange}
+                  disabled={changePasswordMutation.isPending || !currentPassword || !newPassword || !confirmPassword}
+                  data-testid="button-change-password"
+                >
+                  {changePasswordMutation.isPending ? t("common.saving") : t("settings.changePassword")}
+                </Button>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">{t("settings.passwordNote")}</p>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -218,8 +218,8 @@ export function setupAuth(app: Express) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const { passwordHash: _, ...userWithoutPassword } = user;
-    res.json(userWithoutPassword);
+    const { passwordHash, ...userWithoutPassword } = user;
+    res.json({ ...userWithoutPassword, hasPassword: !!passwordHash });
   });
 
   app.post("/api/auth/forgot-password", async (req: Request, res: Response) => {
