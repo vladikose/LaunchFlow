@@ -590,6 +590,44 @@ export async function registerRoutes(
     }
   });
 
+  // Superadmin: Change user password
+  app.post("/api/users/:id/reset-password", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const authUser = getUser(req);
+      if (!authUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      const currentUser = await storage.getUser(authUser.id);
+      if (currentUser?.role !== "superadmin") {
+        return res.status(403).json({ message: "Superadmin access required" });
+      }
+      
+      const { newPassword } = req.body;
+      if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ message: "Password must be at least 6 characters" });
+      }
+      
+      const targetUser = await storage.getUser(req.params.id);
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Can't change own password via this endpoint
+      if (req.params.id === authUser.id) {
+        return res.status(400).json({ message: "Use the regular password change for your own account" });
+      }
+      
+      const { hashPassword } = await import("./auth");
+      const passwordHash = await hashPassword(newPassword);
+      await storage.updateUser(req.params.id, { passwordHash });
+      
+      res.json({ message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Error changing user password:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Factory routes
   app.get("/api/factories", isAuthenticated, async (req: Request, res: Response) => {
     try {

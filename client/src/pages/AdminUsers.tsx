@@ -33,6 +33,16 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { getObjectUrl } from "@/lib/objectStorage";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Users,
   MoreVertical,
@@ -60,6 +70,9 @@ export default function AdminUsers() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserWithStats | null>(null);
   const [deleteType, setDeleteType] = useState<"remove" | "delete">("remove");
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [userToChangePassword, setUserToChangePassword] = useState<UserWithStats | null>(null);
+  const [newPassword, setNewPassword] = useState("");
 
   // Get current user to check if superadmin
   const { data: currentUser } = useQuery<User>({
@@ -116,6 +129,33 @@ export default function AdminUsers() {
       toast({ title: t("admin.users.userDeleteFailed"), variant: "destructive" });
     },
   });
+
+  // Change user password (superadmin only)
+  const changePasswordMutation = useMutation({
+    mutationFn: async ({ userId, newPassword }: { userId: string; newPassword: string }) => {
+      return apiRequest("POST", `/api/users/${userId}/reset-password`, { newPassword });
+    },
+    onSuccess: () => {
+      toast({ title: t("admin.users.passwordChanged") });
+      setPasswordDialogOpen(false);
+      setUserToChangePassword(null);
+      setNewPassword("");
+    },
+    onError: () => {
+      toast({ title: t("admin.users.passwordChangeFailed"), variant: "destructive" });
+    },
+  });
+
+  const handleChangePasswordClick = (user: UserWithStats) => {
+    setUserToChangePassword(user);
+    setNewPassword("");
+    setPasswordDialogOpen(true);
+  };
+
+  const handleConfirmChangePassword = () => {
+    if (!userToChangePassword || newPassword.length < 6) return;
+    changePasswordMutation.mutate({ userId: userToChangePassword.id, newPassword });
+  };
 
   const handleRemoveClick = (user: UserWithStats) => {
     setUserToDelete(user);
@@ -326,6 +366,15 @@ export default function AdminUsers() {
                                 {t("admin.users.makeUser")}
                               </DropdownMenuItem>
                             )}
+                            {isSuperadmin && (
+                              <DropdownMenuItem 
+                                data-testid={`button-change-password-${user.id}`}
+                                onClick={() => handleChangePasswordClick(user)}
+                              >
+                                <Key className="h-4 w-4 mr-2" />
+                                {t("admin.users.changePassword")}
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator />
                             {user.companyId && (
                               <DropdownMenuItem 
@@ -407,6 +456,53 @@ export default function AdminUsers() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("admin.users.changePasswordTitle")}</DialogTitle>
+            <DialogDescription>
+              {t("admin.users.changePasswordDescription", {
+                name: userToChangePassword?.firstName
+                  ? `${userToChangePassword.firstName} ${userToChangePassword.lastName || ""}`.trim()
+                  : userToChangePassword?.email,
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">{t("admin.users.newPassword")}</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder={t("admin.users.newPasswordPlaceholder")}
+                data-testid="input-new-password"
+              />
+              {newPassword.length > 0 && newPassword.length < 6 && (
+                <p className="text-sm text-destructive">{t("admin.users.passwordTooShort")}</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPasswordDialogOpen(false)}
+              data-testid="button-cancel-password"
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              onClick={handleConfirmChangePassword}
+              disabled={newPassword.length < 6 || changePasswordMutation.isPending}
+              data-testid="button-confirm-password"
+            >
+              {changePasswordMutation.isPending ? t("common.saving") : t("admin.users.changePasswordButton")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
