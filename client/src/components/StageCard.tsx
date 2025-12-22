@@ -451,8 +451,22 @@ export function StageCard({ stage, projectId, responsibleUserId, users, position
   };
 
   const customFields = (stage.template?.customFields as CustomField[]) || [];
-  const hasChecklist = stage.template?.hasChecklist && stage.template?.checklistItems?.length;
-  const checklistItems = stage.template?.checklistItems || [];
+  
+  const getChecklistItemsFromBlocks = (): string[] => {
+    const blocks = (stage.template?.blocks as TemplateBlock[]) || [];
+    const checklistBlock = blocks.find(b => b.type === 'checklist');
+    if (checklistBlock) {
+      const config = checklistBlock.config as ChecklistBlockConfig;
+      if (config?.items) {
+        return config.items.map(item => item.key);
+      }
+    }
+    return [];
+  };
+  
+  const blockChecklistItems = getChecklistItemsFromBlocks();
+  const hasChecklist = blockChecklistItems.length > 0 || (stage.template?.hasChecklist && stage.template?.checklistItems?.length);
+  const checklistItems = blockChecklistItems.length > 0 ? blockChecklistItems : (stage.template?.checklistItems || []);
   const hasConditionalSubstages = stage.template?.hasConditionalSubstages && stage.template?.conditionalSubstages?.length;
   const conditionalSubstages = stage.template?.conditionalSubstages || [];
   
