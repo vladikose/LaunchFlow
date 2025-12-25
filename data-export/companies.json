@@ -1,0 +1,219 @@
+[
+  {
+    "id": "ceafba18-3137-4e24-9363-4644283ebfda",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-03T12:46:04.243Z",
+    "updatedAt": "2025-12-03T12:46:04.243Z"
+  },
+  {
+    "id": "1ea18ee0-f64e-4ab2-87fb-e9135725fae3",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-03T12:50:33.513Z",
+    "updatedAt": "2025-12-03T12:50:33.513Z"
+  },
+  {
+    "id": "a022d314-0196-4ac3-b50b-3652faf550aa",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-03T12:53:34.127Z",
+    "updatedAt": "2025-12-03T12:53:34.127Z"
+  },
+  {
+    "id": "f680a38b-8dd6-4d21-86cc-2bc3ac1aafce",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-03T13:05:51.662Z",
+    "updatedAt": "2025-12-03T13:05:51.662Z"
+  },
+  {
+    "id": "6057fd81-ba53-4d3c-b63f-bbeef7967038",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-03T13:08:55.311Z",
+    "updatedAt": "2025-12-03T13:08:55.311Z"
+  },
+  {
+    "id": "fac303a4-3dc2-43bb-bcac-40a830c0620a",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-03T13:11:55.541Z",
+    "updatedAt": "2025-12-03T13:11:55.541Z"
+  },
+  {
+    "id": "e70a0dad-376d-45c4-8696-2a7ea9b8c922",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-03T13:28:27.731Z",
+    "updatedAt": "2025-12-03T13:28:27.731Z"
+  },
+  {
+    "id": "111dd27d-c1e0-4b2a-b8dd-30fe73b1f090",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-03T13:45:55.837Z",
+    "updatedAt": "2025-12-03T13:45:55.837Z"
+  },
+  {
+    "id": "472a1064-2399-4fba-85d2-4068348aeb0f",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-03T13:52:21.818Z",
+    "updatedAt": "2025-12-03T13:52:21.818Z"
+  },
+  {
+    "id": "d7c4ac96-f47a-482a-8fb6-b7e09e736de0",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-03T13:58:05.679Z",
+    "updatedAt": "2025-12-03T13:58:05.679Z"
+  },
+  {
+    "id": "a3ad1677-d66d-4d1c-adda-d9de88ef351d",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-03T14:25:06.431Z",
+    "updatedAt": "2025-12-03T14:25:06.431Z"
+  },
+  {
+    "id": "f008f691-662a-4534-a9e0-0ed3e9b91f7b",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-03T14:32:02.341Z",
+    "updatedAt": "2025-12-03T14:32:02.341Z"
+  },
+  {
+    "id": "3564fd5f-d20b-4f9e-b541-bf3774e8d410",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-03T14:36:04.062Z",
+    "updatedAt": "2025-12-03T14:36:04.062Z"
+  },
+  {
+    "id": "4d6409fa-ea2b-49a0-8526-03d875f33388",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-03T14:54:54.850Z",
+    "updatedAt": "2025-12-03T14:54:54.850Z"
+  },
+  {
+    "id": "9874778a-fb7c-4d2d-9490-90137fa8fcfc",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-03T14:54:54.916Z",
+    "updatedAt": "2025-12-03T14:54:54.916Z"
+  },
+  {
+    "id": "b182e833-8e84-45f6-8c05-aaf65ee6d25c",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-03T15:01:23.737Z",
+    "updatedAt": "2025-12-03T15:01:23.737Z"
+  },
+  {
+    "id": "7d163778-f478-4c41-98e1-ec29a2f85a23",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-03T16:19:15.800Z",
+    "updatedAt": "2025-12-03T16:19:15.800Z"
+  },
+  {
+    "id": "a7763f2a-dbcc-46d8-a819-3b08f31bd5c2",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-04T07:21:44.966Z",
+    "updatedAt": "2025-12-04T07:21:44.966Z"
+  },
+  {
+    "id": "225ff478-1b09-4e6e-8267-24e9ad0a8f92",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-04T07:21:44.974Z",
+    "updatedAt": "2025-12-04T07:21:44.974Z"
+  },
+  {
+    "id": "151478a1-687e-4652-85f4-7b0e435f1cd4",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-04T07:51:38.395Z",
+    "updatedAt": "2025-12-04T07:51:38.395Z"
+  },
+  {
+    "id": "673287c3-fd15-4868-95c2-0c8a665d7605",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-04T07:57:25.881Z",
+    "updatedAt": "2025-12-04T07:57:25.881Z"
+  },
+  {
+    "id": "f0ed2902-20ca-495a-9b46-a7bfdceec53c",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-04T07:57:25.879Z",
+    "updatedAt": "2025-12-04T07:57:25.879Z"
+  },
+  {
+    "id": "262913a5-f2e3-4f02-a95e-714d0171d394",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-04T08:25:56.807Z",
+    "updatedAt": "2025-12-04T08:25:56.807Z"
+  },
+  {
+    "id": "4a8d1c58-371e-4d71-9b8e-df507c0e6a28",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-04T12:05:28.141Z",
+    "updatedAt": "2025-12-04T12:05:28.141Z"
+  },
+  {
+    "id": "cf5b9abd-6468-41be-979b-3e19151cf1cf",
+    "name": "My Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-04T12:05:28.140Z",
+    "updatedAt": "2025-12-04T12:05:28.140Z"
+  },
+  {
+    "id": "9d291584-bcd1-4f61-a1fa-2bbefe62b516",
+    "name": "Onboarding Test Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-04T16:02:17.559Z",
+    "updatedAt": "2025-12-04T16:02:17.559Z"
+  },
+  {
+    "id": "a32f025b-09d6-4644-9ace-95a297efe5fa",
+    "name": "TestCompany-T2Rbbj",
+    "logoUrl": null,
+    "createdAt": "2025-12-04T16:07:42.512Z",
+    "updatedAt": "2025-12-04T16:07:42.512Z"
+  },
+  {
+    "id": "7be2b853-8c84-4734-8b99-85ea5754caeb",
+    "name": "TestCorp Inc",
+    "logoUrl": null,
+    "createdAt": "2025-12-05T07:04:40.141Z",
+    "updatedAt": "2025-12-05T07:04:40.141Z"
+  },
+  {
+    "id": "c5ce2d71-91c6-4200-8530-7334dce1bde3",
+    "name": "Omoikiri",
+    "logoUrl": null,
+    "createdAt": "2025-12-03T13:35:37.666Z",
+    "updatedAt": "2025-12-05T09:49:44.823Z"
+  },
+  {
+    "id": "test-stage-company-c35cdfd4",
+    "name": "Test Stage Company",
+    "logoUrl": null,
+    "createdAt": "2025-12-08T09:06:30.149Z",
+    "updatedAt": "2025-12-08T09:06:30.149Z"
+  },
+  {
+    "id": "f6753a20-55ff-48c9-9ca1-550ed4061590",
+    "name": "Anya's company",
+    "logoUrl": null,
+    "createdAt": "2025-12-10T08:30:54.882Z",
+    "updatedAt": "2025-12-10T08:30:54.882Z"
+  }
+]

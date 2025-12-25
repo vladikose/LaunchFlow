@@ -1,0 +1,530 @@
+[
+  {
+    "id": "4c1902d7-a602-4027-818e-591cd36df381",
+    "projectId": "4f34d419-75ce-4803-95cd-a08b5353ebdb",
+    "article": "49045583",
+    "name": "Yamada Slim-BN",
+    "barcode": null,
+    "createdAt": "2025-12-03T13:47:04.446Z"
+  },
+  {
+    "id": "17f9880a-e045-4402-b3df-212ac3b3f32a",
+    "projectId": "3db253e8-0af0-4897-bb50-10c8a197003e",
+    "article": "ART-001",
+    "name": "Test Product",
+    "barcode": null,
+    "createdAt": "2025-12-03T13:53:31.991Z"
+  },
+  {
+    "id": "20b1dc4c-6a2a-4ea2-9bc0-2c9e7ac57c94",
+    "projectId": "e5be046b-46db-4ec4-882a-728d08dc16a9",
+    "article": "49045583",
+    "name": "Yamada Slim-BN",
+    "barcode": "4995179451417",
+    "createdAt": "2025-12-03T13:59:42.250Z"
+  },
+  {
+    "id": "5c1ada03-57b1-4bde-97b7-ec37e5eec00d",
+    "projectId": "0f62b0d8-285c-4ee4-b242-5df7eadad94d",
+    "article": "4994303",
+    "name": "Yatomi Plus BN-BL",
+    "barcode": "4993845424635",
+    "createdAt": "2025-12-05T16:03:09.109Z"
+  },
+  {
+    "id": "1969b732-1272-4a3a-9e8f-1a44261d4f8f",
+    "projectId": "0f62b0d8-285c-4ee4-b242-5df7eadad94d",
+    "article": "4994304",
+    "name": "Yatomi Plus BN-WH",
+    "barcode": " 4993845424703",
+    "createdAt": "2025-12-05T16:03:09.137Z"
+  },
+  {
+    "id": "1b4a4454-75d8-4a0d-b2cf-143a8ebd5f03",
+    "projectId": "0f62b0d8-285c-4ee4-b242-5df7eadad94d",
+    "article": "4994448",
+    "name": "Yatomi Plus C-BL\t ",
+    "barcode": "4995179451110",
+    "createdAt": "2025-12-05T16:03:09.160Z"
+  },
+  {
+    "id": "53cb1c39-1871-4b0d-83da-fa744a1fd30d",
+    "projectId": "0f62b0d8-285c-4ee4-b242-5df7eadad94d",
+    "article": "4994560",
+    "name": "Yatomi Plus GB-BL",
+    "barcode": "4995179451127",
+    "createdAt": "2025-12-05T16:03:09.183Z"
+  },
+  {
+    "id": "0e6f284b-bbe9-4b62-b339-67f4e78abb51",
+    "projectId": "a643464b-a001-4eee-9cdc-5bb65824914c",
+    "article": "4994579",
+    "name": "Asakawa-S-GB\t",
+    "barcode": "4995179451189",
+    "createdAt": "2025-12-08T09:09:36.601Z"
+  },
+  {
+    "id": "3a5166e9-773c-4e1f-89b8-d7d9c659e23c",
+    "projectId": "a643464b-a001-4eee-9cdc-5bb65824914c",
+    "article": "4994580\t ",
+    "name": "Asakawa-S-LG",
+    "barcode": "4995179451196",
+    "createdAt": "2025-12-08T09:09:36.631Z"
+  },
+  {
+    "id": "cd1c454d-5a2b-4b4f-a152-ceee851f83cb",
+    "projectId": "a643464b-a001-4eee-9cdc-5bb65824914c",
+    "article": "4994581\t",
+    "name": "Asakawa-S-BN",
+    "barcode": "4995179451202",
+    "createdAt": "2025-12-08T09:09:36.654Z"
+  },
+  {
+    "id": "4aec0e1e-b831-4911-9f80-72ee24ecd57c",
+    "projectId": "a643464b-a001-4eee-9cdc-5bb65824914c",
+    "article": "4994582\t  ",
+    "name": "Asakawa-S-C\t ",
+    "barcode": "4995179451219",
+    "createdAt": "2025-12-08T09:09:36.678Z"
+  },
+  {
+    "id": "f9190460-c45f-455e-b021-d523a5ac56c1",
+    "projectId": "a643464b-a001-4eee-9cdc-5bb65824914c",
+    "article": "4994583\t ",
+    "name": "Asakawa-S-GM\t",
+    "barcode": "4995179451226",
+    "createdAt": "2025-12-08T09:09:36.701Z"
+  },
+  {
+    "id": "5c766b14-f236-4a3c-a043-5b1e5da7c5ef",
+    "projectId": "d2cee21c-1abb-4b50-9530-a3cfc44491a7",
+    "article": "4994595",
+    "name": "Kariwa-S-C ",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:14:34.261Z"
+  },
+  {
+    "id": "3102b13d-6f63-4abc-92e7-ceaaab1077e2",
+    "projectId": "d2cee21c-1abb-4b50-9530-a3cfc44491a7",
+    "article": "4994596",
+    "name": "Kariwa-S-BN",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:14:34.293Z"
+  },
+  {
+    "id": "606ea052-280f-4c93-910a-5913293e924e",
+    "projectId": "d2cee21c-1abb-4b50-9530-a3cfc44491a7",
+    "article": "4994597",
+    "name": "Kariwa-S-GM",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:14:34.314Z"
+  },
+  {
+    "id": "b592e11e-378b-42b9-b164-0a4c7ec2e059",
+    "projectId": "d2cee21c-1abb-4b50-9530-a3cfc44491a7",
+    "article": "4994598",
+    "name": "Kariwa-S-LG",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:14:34.336Z"
+  },
+  {
+    "id": "c573f892-21bd-4dfe-b093-cde61756e9fa",
+    "projectId": "d2cee21c-1abb-4b50-9530-a3cfc44491a7",
+    "article": "4994599",
+    "name": "Kariwa-S-GB",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:14:34.358Z"
+  },
+  {
+    "id": "1e77cef7-836e-45e3-a7b1-1fc6d96f3b86",
+    "projectId": "843aa72a-ab6c-411c-a54f-151e0e81e32b",
+    "article": "4994620",
+    "name": "Nakayama-BN",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:17:27.635Z"
+  },
+  {
+    "id": "a8615f25-044f-41d8-8297-5fcc772da37d",
+    "projectId": "843aa72a-ab6c-411c-a54f-151e0e81e32b",
+    "article": "4994621",
+    "name": "Nakayama-LG",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:17:27.665Z"
+  },
+  {
+    "id": "e8a92e88-0f8e-4c1c-9515-85d0df3db639",
+    "projectId": "843aa72a-ab6c-411c-a54f-151e0e81e32b",
+    "article": "4994622",
+    "name": "Nakayama-GB",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:17:27.692Z"
+  },
+  {
+    "id": "ff0dd80a-7e84-4d70-87ab-a076d55d9209",
+    "projectId": "843aa72a-ab6c-411c-a54f-151e0e81e32b",
+    "article": "4994623",
+    "name": "Nakayama-GM",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:17:27.715Z"
+  },
+  {
+    "id": "98bf1d6b-5d6a-44e1-a6a0-13e4d3f02fdb",
+    "projectId": "7c613b59-733e-4711-a6c1-545a60ca49b1",
+    "article": "4994574",
+    "name": "Kori GB-BL",
+    "barcode": "4995179451134",
+    "createdAt": "2025-12-09T14:19:13.379Z"
+  },
+  {
+    "id": "fc2885e7-5788-45cd-b64e-8bba07cc9306",
+    "projectId": "7c613b59-733e-4711-a6c1-545a60ca49b1",
+    "article": "4994575",
+    "name": "Kori LG-BL",
+    "barcode": "4995179451141",
+    "createdAt": "2025-12-09T14:19:13.406Z"
+  },
+  {
+    "id": "02ffbae1-fe6a-49a3-8fb0-82f13a8de43b",
+    "projectId": "7c613b59-733e-4711-a6c1-545a60ca49b1",
+    "article": "4994576",
+    "name": "Kori BN-BL",
+    "barcode": "4995179451158",
+    "createdAt": "2025-12-09T14:19:13.427Z"
+  },
+  {
+    "id": "2b5bce81-7833-48b0-88da-4ab97732278e",
+    "projectId": "7c613b59-733e-4711-a6c1-545a60ca49b1",
+    "article": "4994577",
+    "name": "Kori C-BL",
+    "barcode": "4995179451165",
+    "createdAt": "2025-12-09T14:19:13.453Z"
+  },
+  {
+    "id": "5ac8310f-7069-4989-bab4-043ea815c5ae",
+    "projectId": "7c613b59-733e-4711-a6c1-545a60ca49b1",
+    "article": "4994578",
+    "name": "Kori GM-BL",
+    "barcode": "4995179451172",
+    "createdAt": "2025-12-09T14:19:13.474Z"
+  },
+  {
+    "id": "64814b6e-8ec6-41b7-b18e-2d65a044e567",
+    "projectId": "74715ed0-8f23-42cb-bd62-e641674b56fc",
+    "article": "4994542",
+    "name": "Yamada Slim-C\t",
+    "barcode": "4995179451400",
+    "createdAt": "2025-12-09T14:51:41.921Z"
+  },
+  {
+    "id": "1b315642-db4e-4bd4-9c0d-69a97c4c7500",
+    "projectId": "74715ed0-8f23-42cb-bd62-e641674b56fc",
+    "article": "4994553",
+    "name": "Yamada Slim-BN",
+    "barcode": "4995179451417",
+    "createdAt": "2025-12-09T14:51:41.953Z"
+  },
+  {
+    "id": "5fee2279-8a95-49b3-a14b-be1de2a5cf41",
+    "projectId": "74715ed0-8f23-42cb-bd62-e641674b56fc",
+    "article": "4994554",
+    "name": "Yamada Slim-GM",
+    "barcode": "4995179451424",
+    "createdAt": "2025-12-09T14:51:41.975Z"
+  },
+  {
+    "id": "071f5016-c037-4a49-b61b-931543d80ac1",
+    "projectId": "74715ed0-8f23-42cb-bd62-e641674b56fc",
+    "article": "4994555",
+    "name": "Yamada Slim-LG",
+    "barcode": "4995179451431",
+    "createdAt": "2025-12-09T14:51:42.016Z"
+  },
+  {
+    "id": "5ec6dfb2-3092-4954-a52b-3cd69bc21381",
+    "projectId": "74715ed0-8f23-42cb-bd62-e641674b56fc",
+    "article": "4994556\t",
+    "name": "Yamada Slim-GB",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:51:42.050Z"
+  },
+  {
+    "id": "2bcd1506-222f-44a0-ab8f-fce5c29ef1a8",
+    "projectId": "74715ed0-8f23-42cb-bd62-e641674b56fc",
+    "article": "4994559\t",
+    "name": "Yamada Slim-BL",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:51:42.119Z"
+  },
+  {
+    "id": "50584c1a-710a-408a-ae09-eee1172a5a8b",
+    "projectId": "74715ed0-8f23-42cb-bd62-e641674b56fc",
+    "article": "4994558",
+    "name": "Yamada Slim-GR",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:51:42.141Z"
+  },
+  {
+    "id": "da62f238-4d70-45c0-a545-c8bd385b5604",
+    "projectId": "74715ed0-8f23-42cb-bd62-e641674b56fc",
+    "article": "4994557\t",
+    "name": "Yamada Slim-WH",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:51:42.164Z"
+  },
+  {
+    "id": "540148ab-8ddb-4ea8-86c3-b8c533a9d91b",
+    "projectId": "74715ed0-8f23-42cb-bd62-e641674b56fc",
+    "article": "4994561",
+    "name": "Yamada Slim-ES",
+    "barcode": "4995179451486",
+    "createdAt": "2025-12-09T14:51:42.189Z"
+  },
+  {
+    "id": "f574a94a-ba73-4c37-9d74-22881be5ae85",
+    "projectId": "74715ed0-8f23-42cb-bd62-e641674b56fc",
+    "article": "4994624",
+    "name": "Yamada Slim-SA",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:51:42.213Z"
+  },
+  {
+    "id": "c62e5ee8-c014-4399-957d-fbfb6b01bc86",
+    "projectId": "74715ed0-8f23-42cb-bd62-e641674b56fc",
+    "article": "4994625\t",
+    "name": "Yamada Slim-BE",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:51:42.234Z"
+  },
+  {
+    "id": "ba78957d-207e-4c49-84f0-5ae5c1e962cc",
+    "projectId": "74715ed0-8f23-42cb-bd62-e641674b56fc",
+    "article": "4994626\t",
+    "name": "Yamada Slim-PA",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:51:42.257Z"
+  },
+  {
+    "id": "fdc284ac-f742-492c-84a9-af95ecb31331",
+    "projectId": "74715ed0-8f23-42cb-bd62-e641674b56fc",
+    "article": "4994632",
+    "name": "Yamada Slim-GB-CN",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:51:42.280Z"
+  },
+  {
+    "id": "5015e5e3-1427-4ca1-9372-c646782a463f",
+    "projectId": "74715ed0-8f23-42cb-bd62-e641674b56fc",
+    "article": "4994633",
+    "name": "Yamada Slim-GB-WG\t",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:51:42.302Z"
+  },
+  {
+    "id": "0a498fbd-807c-40ff-b522-bee5932305a7",
+    "projectId": "7ec730df-f7dc-4d84-80f4-cfb271aa0d5c",
+    "article": "4994590",
+    "name": "Miyako-C ",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:59:15.102Z"
+  },
+  {
+    "id": "ef94a3d5-8ee1-4885-a792-b9f22aebb751",
+    "projectId": "7ec730df-f7dc-4d84-80f4-cfb271aa0d5c",
+    "article": "4994591",
+    "name": "Miyako-BN",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:59:15.125Z"
+  },
+  {
+    "id": "b3816b16-1817-4c66-9e36-d41fd70e87b1",
+    "projectId": "7ec730df-f7dc-4d84-80f4-cfb271aa0d5c",
+    "article": "4994592",
+    "name": "Miyako-GM",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:59:15.147Z"
+  },
+  {
+    "id": "9fb75372-c87e-43ad-acfe-98731da457e6",
+    "projectId": "7ec730df-f7dc-4d84-80f4-cfb271aa0d5c",
+    "article": "4994593",
+    "name": "Miyako-LG ",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:59:15.169Z"
+  },
+  {
+    "id": "6ee7b36e-fd3b-4b96-b004-5288af380e52",
+    "projectId": "7ec730df-f7dc-4d84-80f4-cfb271aa0d5c",
+    "article": "4994594",
+    "name": "Miyako-GB",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:59:15.191Z"
+  },
+  {
+    "id": "0362b7b0-fdf0-4bc1-b597-b9c90e897aff",
+    "projectId": "7ec730df-f7dc-4d84-80f4-cfb271aa0d5c",
+    "article": "4994634",
+    "name": "Miyako-GB-CN",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:59:15.213Z"
+  },
+  {
+    "id": "247cf1cc-716e-4de2-afe7-0d9738e275c7",
+    "projectId": "7ec730df-f7dc-4d84-80f4-cfb271aa0d5c",
+    "article": "4994635",
+    "name": "Miyako-GB-WG",
+    "barcode": null,
+    "createdAt": "2025-12-09T14:59:15.234Z"
+  },
+  {
+    "id": "2d6d549a-9ce1-40df-9f74-efdffc890816",
+    "projectId": "81e8790b-4dd4-4ff8-a099-f5554ab91c12",
+    "article": "4994636",
+    "name": "Ora-BN",
+    "barcode": "4995179451493",
+    "createdAt": "2025-12-10T09:02:58.248Z"
+  },
+  {
+    "id": "1c2d4e3a-1369-4274-a229-dd2e8926647c",
+    "projectId": "050ccd05-3141-49af-afb0-793624568b11",
+    "article": "4994616",
+    "name": "OTARI-BN",
+    "barcode": "4995179451448",
+    "createdAt": "2025-12-10T09:07:16.463Z"
+  },
+  {
+    "id": "d84ae4d8-ae67-4ca2-8651-9c1da8906fd8",
+    "projectId": "050ccd05-3141-49af-afb0-793624568b11",
+    "article": "4994617",
+    "name": "OTARI-LG",
+    "barcode": "4995179451455",
+    "createdAt": "2025-12-10T09:07:16.489Z"
+  },
+  {
+    "id": "60dce130-0254-4f1e-bfe3-427a1bef6e8c",
+    "projectId": "050ccd05-3141-49af-afb0-793624568b11",
+    "article": "4994618",
+    "name": "OTARI-GB",
+    "barcode": "4995179451462",
+    "createdAt": "2025-12-10T09:07:16.510Z"
+  },
+  {
+    "id": "8908cb96-34b8-4145-bc72-7c7c03dee1d5",
+    "projectId": "050ccd05-3141-49af-afb0-793624568b11",
+    "article": "4994619",
+    "name": "OTARI-GM",
+    "barcode": "4995179451479",
+    "createdAt": "2025-12-10T09:07:16.532Z"
+  },
+  {
+    "id": "35525dd2-0aeb-40ac-9725-9c32ba20bb3c",
+    "projectId": "7c0bb0e3-c5e9-422e-a82d-e6e87de4f0f5",
+    "article": "4972091",
+    "name": "KENSHIN-S-C (small)",
+    "barcode": "4995179730192",
+    "createdAt": "2025-12-10T14:06:44.071Z"
+  },
+  {
+    "id": "7b9e927e-a07e-48fa-b048-017f91411be6",
+    "projectId": "7c0bb0e3-c5e9-422e-a82d-e6e87de4f0f5",
+    "article": "4972092",
+    "name": "AIKO-S-C (small)",
+    "barcode": "4995179730208",
+    "createdAt": "2025-12-10T14:06:44.102Z"
+  },
+  {
+    "id": "6acdfee7-7edf-406b-b4d6-a6695a4333d1",
+    "projectId": "7c0bb0e3-c5e9-422e-a82d-e6e87de4f0f5",
+    "article": "4972093",
+    "name": "AIKO-M-C (medium)",
+    "barcode": "4995179730215",
+    "createdAt": "2025-12-10T14:06:44.124Z"
+  },
+  {
+    "id": "07797e7f-7051-44c1-b576-7513af22c009",
+    "projectId": "d6015671-5e56-42bd-91ac-5132464a1fa4",
+    "article": "4997574",
+    "name": "Taki 74-U/IF-IN Microdecor",
+    "barcode": "4991252886695",
+    "createdAt": "2025-12-11T09:47:18.681Z"
+  },
+  {
+    "id": "7a2b83ae-c962-4e81-848e-a4c1c33c4782",
+    "projectId": "31e9ad7e-3a26-4655-b2f0-9cbbad8be391",
+    "article": "4994511 ",
+    "name": "Kami 2 Plus-LG\t",
+    "barcode": "4995179451066",
+    "createdAt": "2025-12-11T11:30:31.190Z"
+  },
+  {
+    "id": "05eeba88-5b63-43cf-bb29-0fbac790e16e",
+    "projectId": "31e9ad7e-3a26-4655-b2f0-9cbbad8be391",
+    "article": "4994512",
+    "name": "Kami 2 Plus-GM ",
+    "barcode": "4995179451073",
+    "createdAt": "2025-12-11T11:30:31.222Z"
+  },
+  {
+    "id": "f2b4ffe3-d408-423a-abef-38a376f2374d",
+    "projectId": "31e9ad7e-3a26-4655-b2f0-9cbbad8be391",
+    "article": "4994514\t",
+    "name": "Kami 2 Plus-BN\t",
+    "barcode": "4995179451080",
+    "createdAt": "2025-12-11T11:30:31.246Z"
+  },
+  {
+    "id": "00a3ae06-8b13-4b35-a0d2-35311dc1cee7",
+    "projectId": "31e9ad7e-3a26-4655-b2f0-9cbbad8be391",
+    "article": "4994523",
+    "name": "Kami 2 Plus-C\t",
+    "barcode": "4995179451097",
+    "createdAt": "2025-12-11T11:30:31.269Z"
+  },
+  {
+    "id": "bb712279-c2bf-4192-8488-4b2efba6a722",
+    "projectId": "31e9ad7e-3a26-4655-b2f0-9cbbad8be391",
+    "article": "4994571",
+    "name": "Kami 2 Plus-GB",
+    "barcode": "4995179451103",
+    "createdAt": "2025-12-11T11:30:31.292Z"
+  },
+  {
+    "id": "31a62640-682b-444f-837f-b91cdb672502",
+    "projectId": "0e141f69-b9a5-4e50-ab75-b15fdb445a24",
+    "article": "4994612 \t",
+    "name": "KARATSU-S-LG",
+    "barcode": "4995179451288",
+    "createdAt": "2025-12-11T11:45:35.983Z"
+  },
+  {
+    "id": "f076487d-66f4-4224-8390-45a3993a8736",
+    "projectId": "0e141f69-b9a5-4e50-ab75-b15fdb445a24",
+    "article": "4994613 \t",
+    "name": "KARATSU-S-GM",
+    "barcode": "4995179451295",
+    "createdAt": "2025-12-11T11:45:36.006Z"
+  },
+  {
+    "id": "ded45514-d9ad-44a7-adcf-985c71841ec6",
+    "projectId": "0e141f69-b9a5-4e50-ab75-b15fdb445a24",
+    "article": "4994611 \t",
+    "name": "KARATSU-S-GB\t",
+    "barcode": "4995179451271",
+    "createdAt": "2025-12-11T11:45:36.028Z"
+  },
+  {
+    "id": "c75bc2a2-9668-4525-a92a-4a6ab1969087",
+    "projectId": "0e141f69-b9a5-4e50-ab75-b15fdb445a24",
+    "article": "4994614",
+    "name": "KARATSU-S-C",
+    "barcode": "4995179451301",
+    "createdAt": "2025-12-11T11:45:36.052Z"
+  },
+  {
+    "id": "35f156a4-db03-43af-b023-ea092de040fe",
+    "projectId": "0e141f69-b9a5-4e50-ab75-b15fdb445a24",
+    "article": "4994589 ",
+    "name": "KARATSU-S-BN",
+    "barcode": "4995179451318",
+    "createdAt": "2025-12-11T11:45:36.074Z"
+  }
+]
