@@ -82,3 +82,22 @@ Preferred communication style: Simple, everyday language.
 - Cropped images are uploaded to object storage as new files
 - Available in Project Detail page when clicking on cover image selector
 - Implemented in: `client/src/components/ImageCropper.tsx`, `client/src/pages/ProjectDetail.tsx`
+
+### Portable Architecture (December 2024)
+- Centralized configuration in `shared/config.ts` with Zod validation
+- Database adapter pattern supporting Neon and standard PostgreSQL (`server/database/index.ts`)
+- Storage adapter pattern for GCS, S3, and local filesystem (`server/storage/adapters.ts`)
+- Email provider abstraction supporting Resend, SMTP, or disabled (`server/services/email.ts`)
+- Translation provider abstraction for DeepL (`server/services/translation.ts`)
+- Data export/import scripts for migration (`scripts/export-data.ts`, `scripts/import-data.ts`)
+- Docker and docker-compose support for self-hosting
+- Full deployment documentation in `docs/DEPLOYMENT.md`
+
+## Deployment
+
+The application can be deployed:
+1. **On Replit** - Uses built-in database, GCS storage, and secrets
+2. **Self-hosted with Docker** - `docker-compose up -d`
+3. **Manual deployment** - Node.js 20+, PostgreSQL 16+
+
+See `docs/DEPLOYMENT.md` for complete environment variable documentation.
