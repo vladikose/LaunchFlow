@@ -46,3 +46,6 @@ integrations = ["javascript_log_in_with_replit:1.0.0", "javascript_database:1.0.
 [userenv.shared]
 SENDGRID_API_KEY = "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"
 SENDGRID_FROM_EMAIL = "g.anna1@internet.ru"
+
+[objectStorage]
+defaultBucketID = "replit-objstore-97bc1124-6e31-4d87-a5e3-c1729997eed1"
