@@ -110,26 +110,50 @@ npm start
 
 ## Data Migration
 
-### Export from Replit
+### Migrate to New Replit Account
+
+The easiest way to move LaunchFlow to a new Replit account:
+
+#### Step 1: Export data on source Replit
 
 ```bash
-npx tsx scripts/export-data.ts
+npx tsx scripts/export-sql.ts
 ```
 
-This creates `data-export/` directory with JSON files.
+This creates `data-export/database.sql` with all data.
 
-### Import to New Environment
+#### Step 2: Download the project
 
-1. Copy `data-export/` to new environment
-2. Run:
+In Files panel, click ⋮ → "Download as zip"
+
+#### Step 3: On new Replit
+
+1. Create a new Replit and upload the project files
+2. Create a PostgreSQL database (Tools → Database)
+3. Create the tables:
+```bash
+npm run db:push
+```
+4. Import the data:
+```bash
+npx tsx scripts/import-sql.ts
+```
+
+### Alternative: JSON Export/Import
+
+For more flexibility, use JSON format:
 
 ```bash
+# Export to JSON
+npx tsx scripts/export-data.ts
+
+# Import from JSON
 npx tsx scripts/import-data.ts
 ```
 
 ### File Migration
 
-For GCS files, you'll need to manually download and re-upload to your new storage provider.
+For GCS files, you'll need to manually download and re-upload to your new storage provider. Use the Object Storage panel to download files.
 
 ## Health Checks
 
